@@ -378,4 +378,5 @@ sub get_tlds{
 
 sub create_tlds_file{
 	`$get_tlds_script > $tlds_list`;
+	exit $?
 }
