@@ -1,0 +1,38 @@
+#! /usr/bin/perl
+
+# Cheap hack to get TLDs and, for countries whose domain name registry controls
+# them, second-level domains. TLDs come from IANA, but Wikipedia's the most-reliable
+# list of second-level domains I've found yet...
+# 
+
+use strict;
+use LWP::Simple;
+use utf8;
+
+my $tld_url = 'http://www.iana.org/domains/root/db';
+my $second_level_url = 'https://en.wikipedia.org/wiki/Second-level_domain';
+
+
+my $page = get($tld_url);
+
+my %tlds;
+foreach my $line (split(m/\n/, $page)){
+	if($line =~ m#<span class="domain tld"><a href="/domains/root/db/(.+).html">(\.\w+)</a></span></td>#){
+		next if $1 =~ m/--/; # skip non-latin tlds
+		$tlds{$2}++;
+	}
+}
+
+$page = get($second_level_url);
+foreach my $line (split(m/\n/, $page)){
+	if($line =~ m#^\s*<li><b>(\.\w+)(\.\w+)</b>#){
+		my $sld = $1;
+		my $tld = $2;
+		$tlds{$sld.$tld}++;
+	}
+}
+
+
+foreach my $tld (sort(keys(%tlds))){
+	print $tld."\n";
+}
