@@ -20,13 +20,14 @@ $nginx->{enable_site} = 'nginx_ensite';
 my $nocleartext = undef;
 
 my $certbot = {};
-$certbot->{binary} = 'certbot',
+$certbot->{binary} = '/opt/letsencrypt/letsencrypt-auto',
 $certbot->{config_dir} = '/etc/letsencrypt/configs/';
 $certbot->{key_size} = 2048;
 $certbot->{server} = 'https://acme-v01.api.letsencrypt.org/directory';
 $certbot->{email} = 'letsencrypt@my-company.net';
 $certbot->{webroot_path} = '/var/www/letsencrypt/';
 $certbot->{certs_dir} = '/etc/ssl/certs/';
+
 
 my $help;
 GetOptions(
@@ -231,12 +232,13 @@ sub create_certbot_config{
 	my $params = shift;
 
 	my $key_size = $params->{key_size};
+	my $site_name = $params->{site_name};
 	my $server = $params->{server};
 	my $email = $params->{email};
 	my $webroot_path = $params->{webroot_path};
 	my $names = $params->{names};
 
-	my $config_file = $params->{config_dir}.$params->{site_name};
+	my $config_file = $params->{config_dir}.$site_name;
 	warn("CertBot config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$certbot->{clobber} and !$certbot->{dump};
 
 
@@ -257,6 +259,12 @@ EOF
 	open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 	print $fh $letsencrypt;
 	close($fh);
+
+	my $generate_cert_cmd = "$certbot->{binary} certonly --config ".$config_file;
+	system($generate_cert_cmd);
+	if($? != 0){
+		print "Failed to generate cert for '$site_name' by running `$generate_cert_cmd`. Exited $?\n";
+	}
 	return 1;
 }
 
