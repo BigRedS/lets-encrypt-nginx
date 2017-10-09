@@ -538,6 +538,7 @@ sub hash_to_config{
 	my $hash = shift;
 	foreach my $key (sort(keys(%{$hash}))){
 		my $value = $hash->{$key};
+		next unless $value =~ m/\S+/;
 		$key =~ s/\_/\-/g;
 		$string.="$name-$key=$value\n";
 	}
