@@ -9,15 +9,16 @@ my $get_tlds_script = './get-tld-list';
 #my $domains_list = './domains.txt';
 my $domains_list;
 my $generate_tlds_list = undef;
+my $dump_config = undef;
+
 
 my $nginx = {};
 $nginx->{ssl_socket} = '443';
 $nginx->{cleartext_socket} = '80';
 $nginx->{backend} = 'http://127.0.0.1';
-$nginx->{log_prefix} = '/var/log/nginx/%SITE_NAME%';
+$nginx->{log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
 $nginx->{config_dir} = '/etc/nginx/sites-available';
 $nginx->{enable_site} = 'nginx_ensite';
-my $nocleartext = undef;
 
 my $certbot = {};
 $certbot->{binary} = '/opt/letsencrypt/letsencrypt-auto',
@@ -29,15 +30,19 @@ $certbot->{webroot_path} = '/var/www/letsencrypt/';
 $certbot->{certs_dir} = '/etc/ssl/certs/';
 
 
+if(-f $ARGV[0]){
+	($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list) = parse_config($ARGV[0]);
+}
+
+
 my $help;
 GetOptions(
 	'nginx-ssl-socket=s' => \$nginx->{ssl_socket},
 	'nginx-cleartext-socket=s' => \$nginx->{cleartext_socket},
-	'nginx-nocleartext' => \$nocleartext,
+	'nginx-nocleartext' => \$nginx->{nocleartext},
 	'nginx-backend=s' => \$nginx->{backend},
-	'nginx-log-path-prefix=s' => \$nginx->{log_prefix},
+	'nginx-log-path-prefix=s' => \$nginx->{log_path_prefix},
 	'nginx-config-dir=s' => \$nginx->{config_dir},
-	'clobber-nginx' => \$nginx->{clobber},
 	'nginx-enable-site=s' => \$nginx->{enable_site},
 	'nginx-include-file=s' => \$nginx->{include},
 
@@ -47,28 +52,36 @@ GetOptions(
 	'certbot-email=s' => \$certbot->{email},
 	'certbot-webroot=s' => \$certbot->{webroot_path},
 	'certbot-binary=s' => \$certbot->{binary},
-	'clobber-certbot' => \$certbot->{clobber},
 	'certbot-certs-dir' => \$certbot->{certs_dir},
 
 	'tlds-list-file=s' => \$tlds_list,
 	'get-tlds-script=s' => \$get_tlds_script,
 	'domains=s' => \$domains_list,
+
+	'clobber-nginx' => \$nginx->{clobber},
+	'clobber-certbot' => \$certbot->{clobber},
 	'skip-nginx' => \$nginx->{skip},
 	'skip-certbot' => \$certbot->{skip},
 	'dump-nginx' => \$nginx->{dump},
 	'dump-certbot' => \$certbot->{dump},
 
 	'generate-tlds-list' => \$generate_tlds_list,
+	'dump-config' => \$dump_config,
 
 	'help|h' => \$help,
 ) or die ("Failed to parse arguments");
 
-$nginx->{cleartext_socket} = undef if $nocleartext;
+$nginx->{cleartext_socket} = undef if $nginx->{nocleartext};
 $certbot->{config_dir}.="/";
 $certbot->{config_dir} =~ s#//#/#g;
 
 $nginx->{config_dir}.="/";
 $nginx->{config_dir} =~ s#//#/#g;
+
+if($dump_config){
+	dump_config($nginx, $certbot, $tlds_list, $get_tlds_script,$domains_list);
+	exit;
+}
 
 if($help){
 print <<"EOF";
@@ -133,7 +146,7 @@ OPTIONS:
         Used to create error and access log paths for the nginx config. The string
         '%SITENAME%' is replaced with the site name, and then '_error.log' or 
         '_access.log' is appended.
-        ($nginx->{log_prefix})
+        ($nginx->{log_path_prefix})
 
     --nginx-config-dir [path]
         path to nginx sites-available directory ($nginx->{config_dir});
@@ -279,7 +292,7 @@ sub create_nginx_config{
 
 	my $site_name = $params->{site_name};
 	my $server_names = $params->{server_names};
-	my $log_prefix = $params->{log_prefix};
+	my $log_path_prefix = $params->{log_path_prefix};
 	my $backend = $params->{backend};
 	my $ssl_socket = $params->{ssl_socket};
 	my $cleartext_socket = $params->{cleartext_socket};
@@ -293,9 +306,9 @@ sub create_nginx_config{
 	my $ssl_cert = $nginx->{certs_dir}.$site_name.'.chained.crt';
 	my $ssl_key = $nginx->{certs_dir}.$site_name.'.key';
 
-	$log_prefix =~ s/%SITE_NAME%/$site_name/;
-	my $access_log = $log_prefix.'_access.log';
-	my $error_log = $log_prefix.'_error.log';
+	$log_path_prefix =~ s/%SITE_NAME%/$site_name/;
+	my $access_log = $log_path_prefix.'_access.log';
+	my $error_log = $log_path_prefix.'_error.log';
 	
 
 	my $config = "Server {\n";
@@ -310,8 +323,8 @@ sub create_nginx_config{
 	ssl_certificate $ssl_cert;
 	ssl_certificate_key $ssl_key;
 
-	access_log ${log_prefix}_access.log
-	error_log ${log_prefix}_error.log
+	access_log ${log_path_prefix}_access.log
+	error_log ${log_path_prefix}_error.log
 EOF
 
 	if($nginx->{include_lines}->[0]){
@@ -379,4 +392,66 @@ sub get_tlds{
 sub create_tlds_file{
 	`$get_tlds_script > $tlds_list`;
 	exit $?
+}
+
+
+sub parse_config {
+	my $file = shift;
+	my @keys = qw/nginx-ssl-socket nginx-cleartext-socket nginx-nocleartext nginx-backend nginx-log-path-prefix nginx-config-dir
+	              clobber-nginx nginx-enable-site nginx-include-file
+	              certbot-config-dir certbot-key-size certbot-server-url certbot-email certbot-webroot certbot-binary clobber-certbot
+	              certbot-certs-dir
+		      skip-nginx skip-certbot dump-nginx dump-certbot
+	              tlds-list-file get-tlds-script domains 
+	/;
+	my ($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list);
+	open (my $fh_config, "<", $file) or die ("Failed to open config file '$file' for reading : $!");
+	while (my $line = readline($fh_config)){
+		next if $line =~ m/^\s*#/;
+		if($line =~ m/^(\S+)\s*=\s*(\S+)\s*$/){
+			my($key,$value) = ($1,$2);
+			if($key =~ m/^nginx-(\S+)/ or $key =~ m/(\S+)-nginx$/){
+				$nginx->{$1} = $value;
+			}elsif($key =~ m/^certbot-(\S+)/ or $key =~ m/(\S+)-certbot$/){
+				$certbot->{$1} = $value;
+			}elsif($key eq 'tlds-list-file'){
+				$tlds_list = $value;
+			}elsif($key eq 'get-tlds-script'){
+				$get_tlds_script = $value;
+			}elsif($key eq 'domains'){
+				$domains_list = $value;
+			}else{
+				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring");
+			}
+		}
+	}
+	return($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list);
+}
+sub dump_config{
+	my ($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list) = @_;
+
+	print "tlds-list-file=$tlds_list\n" if $tlds_list;
+	print "get-tlds-script=$get_tlds_script\n" if $get_tlds_script;
+	print "domains=$domains_list\n" if $domains_list;
+
+
+	if($nginx){
+		print hash_to_config('nginx', $nginx);
+	}
+	if($certbot){
+		print hash_to_config('certbot', $certbot);
+	}
+}
+
+sub hash_to_config{
+	my $string;
+	my $name = shift;
+	my $hash = shift;
+	foreach my $key (sort(keys(%{$hash}))){
+		my $value = $hash->{$key};
+		$key =~ s/\_/\-/g;
+		$string.="$name-$key=$value\n";
+	}
+	$string.="\n";
+	return $string;
 }
