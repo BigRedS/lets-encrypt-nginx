@@ -1,4 +1,6 @@
-domains.txt*
 nginx-include-test
 test
 *.swp
+sites
+sites.conf
+lengx.conf
