@@ -1,0 +1,15 @@
+_default
+ backend 10.0.0.1:80
+ auto_www on
+
+example.net example.org example.com
+
+staging.example.co.uk www.example.co.uk example.co.uk
+  backend 10.0.0.2:80
+  auto_www off
+
+example.org example.org.uk
+  backend 10.0.0.3:80
+
+
+

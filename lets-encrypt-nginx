@@ -4,91 +4,88 @@ use strict;
 use Getopt::Long;
 use Data::Dumper;
 
-my $tlds_list = './tlds.txt';
-my $get_tlds_script = './get-tld-list';
-#my $domains_list = './domains.txt';
-my $domains_list;
-my $generate_tlds_list = undef;
-my $dump_config = undef;
 my $debug = $ENV{'DEBUG'};
 
-my ($nowrite,$norun) = undef;
+my $help = undef;
+my $norun = undef;
+my $nowrite = undef;
+my $clobber = undef;
+my $dump_sites = undef;
+my $dump_config = undef;
 
-my $nginx = {};
-$nginx->{ssl_socket} = '443';
-$nginx->{cleartext_socket} = '80';
-$nginx->{backend} = 'http://127.0.0.1';
-$nginx->{log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
-$nginx->{config_dir} = '/etc/nginx/sites-available';
-$nginx->{enable_site} = 'nginx_ensite';
+my $config_file = './lengx.conf';
 
-my $certbot = {};
-$certbot->{binary} = '/opt/letsencrypt/letsencrypt-auto',
-$certbot->{config_dir} = '/etc/letsencrypt/configs/';
-$certbot->{key_size} = 2048;
-$certbot->{server_url} = 'https://acme-v01.api.letsencrypt.org/directory';
-$certbot->{email} = 'letsencrypt@my-company.net';
-$certbot->{webroot_path} = '/var/www/letsencrypt/';
-$certbot->{certs_dir} = '/etc/ssl/certs/';
+my $config = {};
+
+$config->{certs_dir} = '/etc/ssl/certs/';
+$config->{sites_list} = './sites.conf';
+
+$config->{defaults}->{auto_www} = 1;
+$config->{defaults}->{backend} = '127.0.0.1:80';
+
+$config->{nginx_ssl_socket} = '443';
+$config->{nginx_config_dir} = '/etc/nginx/sites-available';
+$config->{nginx_enable_site} = 'nginx_ensite';
+#$config->{nginx_nocleartext};
+$config->{nginx_log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
+$config->{nginx_cleartext_socket} = '80';
+
+$config->{certbot_email} = 'letsencrypt@my-company.net';
+$config->{certbot_binary} = '/opt/letsencrypt/letsencrypt-auto',
+$config->{certbot_key_size} = 2048;
+$config->{certbot_server_url} = 'https://acme-v01.api.letsencrypt.org/directory';
+$config->{certbot_config_dir} = '/etc/letsencrypt/configs/';
+$config->{certbot_webroot_path} = '/var/www/letsencrypt/';
 
 
 if(-f $ARGV[0]){
 	my $config_file = shift(@ARGV);
 	print "Parsing config file '$config_file'\n" if $debug;
-	($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list) = parse_config($config_file);
+	$config = parse_config($config_file, $config);
 }
 
-my $help;
 GetOptions(
-	'nginx-ssl-socket=s' => \$nginx->{ssl_socket},
-	'nginx-cleartext-socket=s' => \$nginx->{cleartext_socket},
-	'nginx-nocleartext' => \$nginx->{nocleartext},
-	'nginx-backend=s' => \$nginx->{backend},
-	'nginx-log-path-prefix=s' => \$nginx->{log_path_prefix},
-	'nginx-config-dir=s' => \$nginx->{config_dir},
-	'nginx-enable-site=s' => \$nginx->{enable_site},
-	'nginx-include-file=s' => \$nginx->{include},
-	'nginx-nowrite' => \$nginx->{nowrite},
-	'nginx-norun' => \$nginx->{norun},
-	'nginx-clobber' => \$nginx->{clobber},
-	'nginx-skip' => \$nginx->{skip},
-	'nginx-dump' => \$nginx->{dump},
+	'no-write-nginx' => \$config->{nginx_nowrite},
+	'no-write-certbot' => \$config->{certbot_nowrite},
+	'no-write' => \$nowrite,
 
-	'certbot-config-dir=s' => \$certbot->{config_dir},
-	'certbot-key-size=s' => \$certbot->{key_size},
-	'certbot-server-url=s' => \$certbot->{server_url},
-	'certbot-email=s' => \$certbot->{email},
-	'certbot-webroot-path=s' => \$certbot->{webroot_path},
-	'certbot-binary=s' => \$certbot->{binary},
-	'certbot-certs-dir' => \$certbot->{certs_dir},
-	'certbot-nowrite' => \$certbot->{nowrite},
-	'certbot-norun' => \$certbot->{norun},
-	'certbot-clobber' => \$certbot->{clobber},
-	'certbot-skip' => \$certbot->{skip},
-	'certbot-dump' => \$certbot->{dump},
+	'no-run-nginx' => \$config->{nginx_norun},
+	'no-run-certbot' => \$config->{certbot_norun},
+	'no-run-both' => \$norun,
 
-	'tlds-list-file=s' => \$tlds_list,
-	'get-tlds-script=s' => \$get_tlds_script,
-	'domains=s' => \$domains_list,
+	'no-cleartext' => \$config->{nginx_nocleartext},
 
-	'nowrite' => \$nowrite,
-	'norun' => \$norun,
+	'clobber-nginx' => \$config->{nginx_clobber},
+	'clobber-certbot' => \$config->{certbot_clobber},
+	'clobber-both' => \$clobber,
 
-	'generate-tlds-list' => \$generate_tlds_list,
-	'dump-config' => \$dump_config,
+	'skip-nginx' => \$config->{nginx_skip},
+	'skip-certbot' => \$config->{certbot_skip},
+
+	'dump-nginx' => \$config->{nginx_dump},
+	'dump-certbot' => \$config->{certbot_dump},
+
+	'sites=s' => \$config->{sites_list},
+	'config=s' => \$config_file,
+
+	'dump-config' => \$config->{dump_config},
+	'dump-sites' => \$dump_sites,
 
 	'help|h' => \$help,
-) or die ("Failed to parse arguments");
+) or die ('Failed to parse arguments');
 
-$nginx->{norun} = $certbot->{norun} = 1 if $norun;
-$nginx->{nowrite} = $certbot->{nowrite} = 1 if $nowrite;
+$config->{nginx_norun} = $config->{certbot_norun} = 1 if $norun;
+$config->{nginx_nowrite} = $config->{certbot_nowrite} = 1 if $nowrite;
+$config->{nginx_clobber} = $config->{certbot_clobber} = 1 if $clobber;
 
-$nginx->{cleartext_socket} = undef if $nginx->{nocleartext};
-$certbot->{config_dir}.="/";
-$certbot->{config_dir} =~ s#//#/#g;
+$config->{nginx_cleartext_socket} = undef if $config->{nginx_nocleartext};
 
-$nginx->{config_dir}.="/";
-$nginx->{config_dir} =~ s#//#/#g;
+$config->{certbot_config_dir}.='/';
+$config->{certbot_config_dir} =~ s#//#/#g;
+
+$config->{nginx_config_dir}.='/';
+$config->{nginx_config_dir} =~ s#//#/#g;
+
 
 
 if($help){
@@ -98,149 +95,86 @@ lets-encrypt-nginx; script for configuring nginx and lets encrypt.
 
 USAGE:
 
-    lets-encrypt-nginx <config-file>
+  lets-encrypt-nginx [--config <config-file>] [--sites <sites-list>] [options]
 
-  or
+  config-file defaults to $config_file
+  sites-list defaults to $config->{sites_list}
 
-    lets-encrypt-nginx <options> --domains [path]
+See CONFIG and SITES below for a description of those two files. 
 
-  or
+Options:
 
-    lets-encrypt-nginx --generate-tlds-file
+  --nocleartext
+
+    Don't insert config to cause Nginx to listen for cleartext HTTP (on port
+    80 by default). This makes nginx an SSL-terminator only.
+
+  --no-write-nginx, --no-write-certbot, --no-write
+
+    Don't write nginx config, certbot config, or either. Assembles the config, 
+    but skips the bit where it would be writen.
 
 
-Where [path] is to a file containing a list of domains, one per line. See CONFIG FILE
-below for instructions.
+  --no-run-nginx, --no-run-certbot, --no-run-both
+  
+    Don't run the nginx site-enabling command,  don't run the certbot cert-
+    issuing command, or don't run either. 
 
-OPTIONS:
-(default/current values in brackets)
 
-  --tlds-list-file [path]
-      file containing a list of TLDs; see 'TLDS' below. 
-      ($tlds_list)
+  --clobber-nginx, --clobber-certbot, --clobber-both
 
-  --get-tlds-script [path]
-      path to script for generating tlds-list-file 
-      ($get_tlds_script)
+    Overwrite existing nginx configs, certbot configs, or both. Default is to
+    print a warning and skip the site.
 
-  --clobber-certbot, --clobber-nginx
-      Silently overwrite existing config for certbot and/or nginx respectively. 
-      default is to print a warning and not overwrite.
 
-  --skip-certbot, --skip-nginx
-      Skip certbot or Nginx configuration, respectively.
+  --skip-nginx --skip-certbot
 
-  --dump-certbot, --dump-nginx
-      Rather than create/enable config files, just print all generated config to
-      stdout. Overriden by the 'skip' equivalents.
-      dump-certbot is probably useless outside of debugging.
+    Skip all nginx configuring, or skip all certbot configuration. Calling with
+    both is permitted, but pointless.
 
-  --norun, --nginx-norun, certbot-norun
-      Refers to running nginx's site-enabling command, and certbot's certificate-issuing one
 
-  --nowrite, --nginx-nowrite, --certbot-nowrite
-      Don't actually write config files
+  --dump-nginx, --dump-certbot
 
-  nginx:
+    Dump nginx config to stdout, or dump certbot config to stdout (rather than
+    writing to files). Not affected by --no-write*
 
-    --nginx-ssl-socket [port or ip-address:port]
-        argument to nginx's 'listen' directive, for SSL connections. Do not
-        include trailing 'ssl' at the end; *just* the socket ($nginx->{ssl_socket})
+  --dump-config, --dump-sites
 
-    --nginx-cleartext-socket [port or ip-address:port]
-        same, for cleartext ($nginx->{cleartext_socket})
-
-    --nginx-nocleartext 
-        default is to add a 'listen 80' line to the nginx config. Set this to skip
-        that
-
-    --nginx-backend [url]
-        URL to proxied-to backend ($nginx->{backend})
-
-    --nginx-log-path-prefix [path]
-        Used to create error and access log paths for the nginx config. The string
-        '%SITENAME%' is replaced with the site name, and then '_error.log' or 
-        '_access.log' is appended.
-        ($nginx->{log_path_prefix})
-
-    --nginx-config-dir [path]
-        path to nginx sites-available directory ($nginx->{config_dir});
-
-    --nginx-enable-site [command]
-        thing to execute to enable the config that's presumably been written to 
-        sites-avilable. Passed the file basename as its only argument; expects to
-        have something like this installed: https://github.com/perusio/nginx_ensite
-        Disable this by passing `/bin/true`
-        ($nginx->{enable_site})
-
-    --nginx-include-file [path]
-        path to a file to include in the Nginx config. Is inserted verbatim, at the 
-        end. It probably wants every line to be indented by one tab, for neatness' 
-        sake
-        ($nginx->{include})
-        
-  certbot:
-
-    --certbot-config-dir [path]
-        directory in which certbot config files are created 
-       ($certbot->{config_dir})
-
-    --certbot-key-size [bits]
-        number of bits for the private key ($certbot->{key_size})
+    Dump the configuration, or site definitions, to stdout before doing any 
+    processing. Config is dumped in the format of a valid config file, but sites
+    are not.
     
-    --certbot-server-url [url]
-        URL to the certbot server ($certbot->{server_url})
-    
-    --certbot-email [email-address]
-        Email address for the Let's Encrypt cert ($certbot->{email})
-    
-    --certbot-webroot-path [path]
-        Webroot directory ($certbot->{webroot_path})
-    
-    --certbot-binary [path]
-        Path to certbot itself ($certbot->{binary})
+CONFIG
 
+The config file is a series of key=value pairs, and the keys exactly match those
+used in the \%config hash internally. Check the top of the script for currently-
+known ones, and use --dump-config to produce the file. 
 
-TLDS
+Unsupported config keys cause a warning to be displayed, but don't prevent execution.
+Lines beginning '#' are skipped as comments.
 
-In order to determine a reasonable 'site name', this script needs to know which portion 
-of a domain name is TLD or Second-level domain (SLD), and which portion is the part that
-was actually registered by the customer.
+There should be an example at ./lengx.conf.example
 
-It uses a file tlds.txt (specified with --tlds-list-file) as reference, which is a list,
-one-item-per-line, of every IANA TLD, and every country-specific second-level domain 
-(.co.uk, for example). Each domain is checked against this list, and the longest-matching
-string is taken to deduce the registered domain. "mycompany.co.uk" would match both '.co.uk' 
-and '.uk.'; .co.uk would be selected as the longest-match, and so 'mycompany' would be the 
-name of the site, and 'mycompany.com' seen as related.
+SITES
 
-This file can be created with the included get-tld-list script:
+Each site is defined, at minimum, by a single space-separated line of domain names. 
+The first item in this list is taken as the name of the site. Options may be set on 
+successive lines that begin with spaces; currently supported options are:
 
-    get-tld-list > ./tlds.txt
+  auto_www - if set to 'on', automatically add the 'www' subdomain to all names. Set
+             to 'off' to disable.
+  backend  - literal string used as the argument to nginx's proxy_pass
 
-or by invoking this with --generate-tlds-file:
+The first site in the file may be named '_default' to set defaults for all successive 
+sites. Lines beginning '#' are skipped as comments.
 
-   lets-encrypt-nginx --generate-tlds-file
-
-which will silently overwrite ./tlds.txt (or whatever's set with --tlds-list-file).
-
-
-CONFIG FILE
-
-If the first argument is a path to a file that exists, this is parsed as a config file before
-any command-line switches are processed. The format is key/value pairs separated by a =, where
-the permissible keys are (almost) any of the command-line switches. 
-
-Once you've an invokation you're happy with, append '--dump-config' to your series of options to 
-have a config file printed to stdout (run with only --dump-config, will print a config file that
-just codifies the defaults).
-
+There should be an example at ./sites.conf.example
 
 DEBUGGING
 
 Set the environment variable 'DEBUG' to anything to have helpful(!) messages printed to stderr:
 
-    DEBUG=1 lets-encrypt-nginx ./my-config-file --norun --nowrite 
+    DEBUG=1 lets-encrypt-nginx --norun --nowrite 
 
 is a likely invocation here.
 
@@ -249,17 +183,16 @@ exit 0;
 }
 
 
-if($dump_config){
-	print dump_config($nginx, $certbot, $tlds_list, $get_tlds_script,$domains_list);
+if($config->{dump_config}){
+	print dump_config($config);
 	exit;
 }
 
-if(!$domains_list){
-	print STDERR "Error: no domains list specified. Try with --help\n";
+if(!$config->{sites_list}){
+	print STDERR 'Error: no domains list specified. Try with --help\n';
 	exit 1;
 }
 
-$nginx->{certs_dir} = $certbot->{certs_dir};
 
 # # #
 # #
@@ -267,71 +200,72 @@ $nginx->{certs_dir} = $certbot->{certs_dir};
 
 if($debug){
 	print STDERR "Debug on; dumping config\n";
-	print STDERR dump_config($nginx, $certbot, $tlds_list, $get_tlds_script,$domains_list);
+	print STDERR dump_config($config);
 }
 
+my %sites = get_sites($config);
+if($dump_sites){
+	print dump_sites(\%sites);
+	exit;
+}
 
-my %sites = get_sites($tlds_list,$domains_list);
+#if($config->{nginx_include} and ( -f $config->{nginx_include})){
+#		print STDERR  "  Including nginx include file '$config->{nginx_incldude}'\n" if $debug;
+#		open(my $fh_include, "<", $config->{nginx_include}) or die ("Failed to to open nginx-include file '$config->{nginx_include}' : $!");
+#		@include_lines = <$fh_include>;
+#		close($fh_include);
+#	}
+#	my @include_lines;
+#	$config->{nginx_include_lines} = \@include_lines;
 
 foreach my $sitename (keys(%sites)){
+	my $site = $sites{$sitename};
 	print STDERR "site: $sitename\n" if $debug;
-	$nginx->{site_name} = $sitename;
-	$nginx->{server_names} = join(" ", @{$sites{$sitename}});
-	print "  server names: ".$nginx->{server_names}."\n" if $debug;
-	my @include_lines;
-	if($nginx->{include} and ( -f $nginx->{include})){
-		print STDERR  "  Including nginx include file '$nginx->{incldude}'\n" if $debug;
-		open(my $fh_include, "<", $nginx->{include}) or die ("Failed to to open nginx-include file '$nginx->{include}' : $!");
-		@include_lines = <$fh_include>;
-		close($fh_include);
-	}
-	$nginx->{include_lines} = \@include_lines;
-	if($nginx->{skip}){
+	print "  server names: ".$site->{domains_list}."\n" if $debug;
+	if($config->{nginx_skip}){
 		print STDERR "  Skipping nginx \n" if $debug;
 	}else{
-		create_nginx_config($nginx);
+		create_nginx_config($site, $config);
 	}
 
-	$certbot->{site_name} = $sitename;
-	$certbot->{names} = join(" ", @{$sites{$sitename}});
-	if($certbot->{skip}){
+	if($config->{certbot_skip}){
 		print STDERR "  Skipping certbot\n" if $debug
 	}else{
-		create_certbot_config($certbot);
+		create_certbot_config($site,$config);
 	}
 }
 
 
 
 sub create_certbot_config{
-	my $params = shift;
-	my $key_size = $params->{key_size};
-	my $site_name = $params->{site_name};
-	my $server = $params->{server_url};
-	my $email = $params->{email};
-	my $webroot_path = $params->{webroot_path};
-	my $names = $params->{names};
+	my ($site,$config) = @_;
+	my $names = join(' ', @{$site->{domains_list}});
+	my $site_name = $site->{sitename};
+	
 
-	my $config_file = $params->{config_dir}.$site_name;
+	my $config_file = $config->{certbot_config_dir}.$site_name;
 	print STDERR "  certbot config file: '$config_file'" if $debug;
-	warn("CertBot config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$certbot->{clobber} and !$certbot->{dump};
+	warn("CertBot config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump};
+
+
+	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
 
 
 my $letsencrypt = <<"EOF";
 domains = $names
-rsa-key-size = $key_size
-server = $server
-email = $email
+rsa-key-size = $config->{certbot_key_size}
+server = $config->{certbot_server_url}
+email = $config->{certbot_email}
 text = True
 authenticator = webroot
-webroot-path = $webroot_path
+webroot-path = $config->{certbot_webroot_path}
 EOF
 
-	if($certbot->{dump}){
-		print $letsencrypt;
+	if($config->{certbot_dump}){
+		print $letsencrypt."\n";
 		return 2;
 	}
-	if($certbot->{nowrite}){
+	if($config->{certbot_nowrite}){
 		print STDERR "    Not writing config ('nowrite' set)\n" if $debug;
 	}else{
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
@@ -339,9 +273,8 @@ EOF
 		close($fh);
 	}
 
-	my $generate_cert_cmd = "$certbot->{binary} certonly --config ".$config_file;
 	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
-	if($certbot->{norun}){
+	if($config->{certbot_norun}){
 		print STDERR "    not running; 'norun' set\n" if $debug;
 	}else{
 			system($generate_cert_cmd);
@@ -353,72 +286,68 @@ EOF
 }
 
 sub create_nginx_config{
-	my $params = shift;
+	my ($site,$config) = @_;
 
-	my $site_name = $params->{site_name};
-	my $server_names = $params->{server_names};
-	my $log_path_prefix = $params->{log_path_prefix};
-	my $backend = $params->{backend};
-	my $ssl_socket = $params->{ssl_socket};
-	my $cleartext_socket = $params->{cleartext_socket};
-	my $enable_site_cmd = $nginx->{enable_site};
-
-	my $config_file = $params->{config_dir}.$params->{site_name};
+	my $site_name = $site->{sitename};
+	my $server_names = join(" ", @{$site->{domains_list}});
+	
+	my $config_file = $config->{nginx_config_dir}.$site->{sitename};
 	print STDERR "  Nginx config file: $config_file\n" if $debug;
-	warn("Nginx config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$nginx->{clobber} and !$nginx->{dump};
+	warn("Nginx config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$config->{nginx_clobber} and !$config->{nginx_dump};
 
-	$enable_site_cmd.=" $site_name";
-	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
+	my $enable_site_cmd = $config->{nginx_enable_site}.' '.$site_name;
 
-	my $ssl_cert = $nginx->{certs_dir}.$site_name.'.chained.crt';
-	my $ssl_key = $nginx->{certs_dir}.$site_name.'.key';
+	my $ssl_cert = $config->{certs_dir}.$site_name.'.chained.crt';
+	my $ssl_key = $config->{certs_dir}.$site_name.'.key';
 
 	print STDERR "    ssl_cert: $ssl_cert\n" if $debug;
 	print STDERR "    ssl_key: $ssl_key\n" if $debug;
 
-	$log_path_prefix =~ s/%SITE_NAME%/$site_name/;
-	my $access_log = $log_path_prefix.'_access.log';
-	my $error_log = $log_path_prefix.'_error.log';
+	my $log_path = $config->{nginx_log_path_prefix};
+	$log_path =~ s/%SITE_NAME%/$site_name/;
+	my $access_log = $log_path.'_access.log';
+	my $error_log = $log_path.'_error.log';
 
 
 	print STDERR "    access_log: $access_log\n" if $debug;
 	print STDERR "    error_log: $error_log\n" if $debug;
 
-	my $config = "Server {\n";
-	$config.="\tlisten $ssl_socket ssl;\n";
-	$config.="\tlisten $cleartext_socket;\n" if ($cleartext_socket);
-	$config.=<<"EOF";
+	my $nginx_config = "server {\n";
+	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n";
+	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($config->{nginx_cleartext_socket} =~ m/.+/);
+	$nginx_config.=<<"EOF";
 	server_name $server_names;
 	location / {
-		proxy_pass $backend;
+		proxy_pass $site->{backend};
 	}
 
 	ssl_certificate $ssl_cert;
 	ssl_certificate_key $ssl_key;
 
-	access_log ${log_path_prefix}_access.log
-	error_log ${log_path_prefix}_error.log
+	access_log $access_log;
+	error_log $error_log;
 EOF
 
-	if($nginx->{include_lines}->[0]){
-		$config.=join("", @{$nginx->{include_lines}});
+	if($config->{nginx_include_lines}->[0]){
+		$nginx_config.=join("", @{$config->{nginx_include_lines}});
 	}
 
-	$config.="}\n";
+	$nginx_config.="}\n";
 
-	if($nginx->{dump}){
-		print $config;
+	if($config->{nginx_dump}){
+		print $nginx_config;
 		return 2;
 	}
-	if($nginx->{nowrite}){
+	if($config->{nginx_nowrite}){
 		print STDERR "    Not writing config; 'nowrite' set\n" if $debug;
 	}else{
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
-		print $fh $config;
+		print $fh $nginx_config;
 		close($fh);
 	}
 
-	if($nginx->{norun}){
+	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
+	if($config->{nginx_norun}){
 		print STDERR "    Not running enable_site command; 'norun' set\n" if $debug;
 	}else{
 		system($enable_site_cmd);
@@ -431,62 +360,59 @@ EOF
 
 
 sub get_sites{
-	my $tlds_list = shift;
-	my $domains_list = shift;
-	my %tlds = get_tlds($tlds_list);
-	my %sites;
-	open(my $fh_domains, "<", $domains_list) or die ("Failed to open domains list file '$domains_list' : $!");
-	while(my $line = readline($fh_domains)){
+	my $config = shift;
+
+	my %sitss;
+	open(my $fh_domains, "<", $config->{sites_list}) or print "Failed to open domains config file '$config->{sites_list}' : $!\n" and exit 255;
+	my $sitename;
+	while (my $line = readline($fh_domains)){
 		chomp($line);
-		next if $line =~ m/^\s*#/;
-		next if $line =~~ m/^\s*$/;
-		if($line =~ m/^(\S+)/){
-			my $domain = $1;
-			my ($sld) = $domain =~ m/(\.\w+\.\w+)$/;
-			my ($tld) = $domain =~ m/(\.\w+)$/;
-		
-			my $site;
-			# This is where a 'site' is defined, really; use
-			#   ...$domain =~ m/([^\.]+$tld)$/...
-			# to have it include the tld. 
-			($site) = $domain =~ m/([^\.]+)$tld$/ if $tlds{$tld};
-			($site) = $domain =~ m/([^\.]+)$sld$/ if $tlds{$sld};
-	
-			push(@{$sites{$site}}, $domain);
+		next if $line =~ m/^\s*#/ or $line =~ m/^\s*$/;
+		$line =~ s/\s+$//;
+
+		if($line =~ m/^\w+/){
+			if($sitename eq '_default'){
+				$config->{defaults}->{auto_www} = $sites{_default}->{auto_www} if $sites{_default}->{auto_www} =~ m/.+/;
+				$config->{defaults}->{backend} = $sites{_default}->{backend} if $sites{_default}->{backend} =~ m/.+/;
+				delete($sites{_default});
+			}
+
+			my @domains = split(m/\s+/, $line);
+			$sitename = $domains[0];
+			$sites{$sitename}->{domains_list} = \@domains;
+			$sites{$sitename}->{sitename} = $sitename;
+			
+			$sites{$sitename}->{auto_www} = $config->{defaults}->{auto_www};
+			$sites{$sitename}->{backend} = $config->{defaults}->{backend};
+		}
+		if($line =~ m/^\s+(\S+)\s+(.+)$/){
+			my ($key,$value) = ($1,$2);
+			$sites{$sitename}->{backend} = $value if $key eq 'backend';
+			if($key eq 'auto_www'){
+				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
+					$sites{$sitename}->{auto_www} = '1';
+				}elsif($value =~ m/^n|0/i or $value =~ m/^off/i){
+					$sites{$sitename}->{auto_www} = '0';
+				}else{
+					print STDERR "Failed attempt to set 'auto_www' to '$value'";
+				}
+			}
 		}
 	}
 	return %sites;
 }
 
-sub get_tlds{
-	my $tlds_list = shift;
-	open(my $fh, '<', $tlds_list) or warn ("Failed to open tlds list file '$tlds_list' : $!");
-	my @lines;
-	while (my $line = readline($fh)){
-		chomp($line);
-		push(@lines, $line);
-	}
-	close($fh);
-	my %tlds = map { $lines[$_] => $_ } 0..$#lines;
-	return %tlds;
-}
-
-sub create_tlds_file{
-	`$get_tlds_script > $tlds_list`;
-	exit $?
-}
 
 
 sub parse_config {
 	my $file = shift;
-	my @keys = qw/nginx-ssl-socket nginx-cleartext-socket nginx-nocleartext nginx-backend nginx-log-path-prefix nginx-config-dir
-	              clobber-nginx nginx-enable-site nginx-include-file
-	              certbot-config-dir certbot-key-size certbot-server-url certbot-email certbot-webroot-path certbot-binary clobber-certbot
-	              certbot-certs-dir
-		      skip-nginx skip-certbot dump-nginx dump-certbot
-	              tlds-list-file get-tlds-script domains 
+	my $config;
+	my @keys = qw/nginx_ssl_socket nginx_cleartext_socket nginx_nocleartext nginx_log_path_prefix nginx_config_dir
+	              nginx_clobber nginx_enable_site nginx_include_file nginx_skip
+	              certbot_config_dir certbot_key_size certbot_server_url certbot_email certbot_webroot_path 
+		      certbot_binary certbot_clobber certbot_skip
+	              certs_dir
 	/;
-	my ($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list);
 	open (my $fh_config, "<", $file) or die ("Failed to open config file '$file' for reading : $!");
 	while (my $line = readline($fh_config)){
 		next if $line =~ m/^\s*#/;
@@ -496,51 +422,45 @@ sub parse_config {
 				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring");
 			}
 			$key =~ s/-/_/g;
-			if($key =~ m/^nginx_(\S+)/){
-				$nginx->{$1} = $value if $value =~ m/\S+/;
-			}elsif($key =~ m/^certbot_(\S+)/){
-				$certbot->{$1} = $value;
-			}elsif($key eq 'tlds_list_file'){
-				$tlds_list = $value;
-			}elsif($key eq 'get_tlds_script'){
-				$get_tlds_script = $value;
-			}elsif($key eq 'domains'){
-				$domains_list = $value;
-			}else{
-				print STDERR ("Unparseable config line '$line'; skipping");
-			}
+			$config->{$key} = $value if $value =~ m/\S+/;
 		}
 	}
-	return($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list);
+	return($config);
 }
 sub dump_config{
-	my ($nginx,$certbot,$tlds_list,$get_tlds_script,$domains_list) = @_;
+	my $config = shift;
+	my $string=hash_to_config($config);
+	return $string;
+}
 
+sub dump_sites{
+	my $sites = shift;
 	my $string;
-
-	$string.="tlds-list-file=$tlds_list\n" if $tlds_list;
-	$string.= "get-tlds-script=$get_tlds_script\n" if $get_tlds_script;
-	$string.="domains=$domains_list\n" if $domains_list;
-	$string.="\n";
-
-	if($nginx){
-		$string.=hash_to_config('nginx', $nginx);
-	}
-	if($certbot){
-		$string.=hash_to_config('certbot', $certbot);
+	foreach my $sitename(keys(%{$sites})){
+		$string.="$sitename\n";
+		foreach my $key (sort(keys(%{$sites{$sitename}}))){
+			if($key eq 'domains_list'){
+				$string.="  $key ".join(", ", @{$sites->{$sitename}->{$key}})."\n";
+			}else{
+				$string.="  $key $sites->{$sitename}->{$key}\n";
+			}
+		}
+		$string.="\n";
 	}
 	return $string;
 }
 
 sub hash_to_config{
 	my $string;
-	my $name = shift;
 	my $hash = shift;
 	foreach my $key (sort(keys(%{$hash}))){
 		my $value = $hash->{$key};
+		if(ref($value) eq 'ARRAY'){
+			$value = join(", ", @{$value});
+		}
 		next unless $value =~ m/\S+/;
 		$key =~ s/\_/\-/g;
-		$string.="$name-$key=$value\n";
+		$string.="$key=$value\n";
 	}
 	$string.="\n";
 	return $string;
