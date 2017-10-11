@@ -42,7 +42,7 @@ nginx_enable_site = nginx-ensite
 
 # Include the contents of this file in the nginx config file, verbatim in the 
 # server{} context. Should probably be tab-indented for prettiness-sake
-nginx_include_file  =  ./%SITE_NAME%/nginx_include
+nginx_include_file  =  ./nginx_includes/%SITE_NAME%
 
 
 # the string %SITE_NAME% is replaced with the name of the site, and the 

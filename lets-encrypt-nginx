@@ -37,12 +37,12 @@ $config->{certbot_server_url} = 'https://acme-v01.api.letsencrypt.org/directory'
 $config->{certbot_config_dir} = '/etc/letsencrypt/configs/';
 $config->{certbot_webroot_path} = '/var/www/letsencrypt/';
 
-
 if(-f $ARGV[0]){
-	my $config_file = shift(@ARGV);
-	print "Parsing config file '$config_file'\n" if $debug;
-	$config = parse_config($config_file, $config);
+	$config_file = shift(@ARGV);
 }
+
+print "Parsing config file '$config_file'\n" if $debug;
+$config = parse_config($config_file, $config);
 
 GetOptions(
 	'no-write-nginx' => \$config->{nginx_nowrite},
@@ -66,7 +66,6 @@ GetOptions(
 	'dump-certbot' => \$config->{certbot_dump},
 
 	'sites=s' => \$config->{sites_list},
-	'config=s' => \$config_file,
 
 	'dump-config' => \$config->{dump_config},
 	'dump-sites' => \$dump_sites,
@@ -95,9 +94,9 @@ lets-encrypt-nginx; script for configuring nginx and lets encrypt.
 
 USAGE:
 
-  lets-encrypt-nginx [--config <config-file>] [--sites <sites-list>] [options]
+  lets-encrypt-nginx [ <config-file> ] [--sites <sites-list>] [options]
 
-  config-file defaults to $config_file
+  config-file defaults to $config_file; must be first argument when set
   sites-list defaults to $config->{sites_list}
 
 See CONFIG and SITES below for a description of those two files. 
@@ -209,16 +208,9 @@ if($dump_sites){
 	exit;
 }
 
-#if($config->{nginx_include} and ( -f $config->{nginx_include})){
-#		print STDERR  "  Including nginx include file '$config->{nginx_incldude}'\n" if $debug;
-#		open(my $fh_include, "<", $config->{nginx_include}) or die ("Failed to to open nginx-include file '$config->{nginx_include}' : $!");
-#		@include_lines = <$fh_include>;
-#		close($fh_include);
-#	}
-#	my @include_lines;
-#	$config->{nginx_include_lines} = \@include_lines;
 
 foreach my $sitename (keys(%sites)){
+
 	my $site = $sites{$sitename};
 	print STDERR "site: $sitename\n" if $debug;
 	print "  server names: ".$site->{domains_list}."\n" if $debug;
@@ -294,6 +286,22 @@ sub create_nginx_config{
 	my $config_file = $config->{nginx_config_dir}.$site->{sitename};
 	print STDERR "  Nginx config file: $config_file\n" if $debug;
 	warn("Nginx config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$config->{nginx_clobber} and !$config->{nginx_dump};
+
+
+	if($config->{nginx_include_file}){
+		my $nginx_include = $config->{nginx_include_file};
+		$nginx_include =~ s/%SITE_NAME%/$site_name/;
+		if( -f $nginx_include){
+			my @include_lines;
+			print STDERR  "  Including nginx include file '$nginx_include'\n" if $debug;
+			open(my $fh_include, "<", $nginx_include) or print "Failed to to open nginx-include file '$nginx_include' : $!" ;
+			@include_lines = <$fh_include>;
+			close($fh_include);
+			$config->{nginx_include_lines} = \@include_lines;
+		}else{
+			print STDERR "WARN: Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n";
+		}
+	}
 
 	my $enable_site_cmd = $config->{nginx_enable_site}.' '.$site_name;
 
@@ -411,7 +419,7 @@ sub parse_config {
 	              nginx_clobber nginx_enable_site nginx_include_file nginx_skip
 	              certbot_config_dir certbot_key_size certbot_server_url certbot_email certbot_webroot_path 
 		      certbot_binary certbot_clobber certbot_skip
-	              certs_dir
+	              certs_dir sites_list
 	/;
 	open (my $fh_config, "<", $file) or die ("Failed to open config file '$file' for reading : $!");
 	while (my $line = readline($fh_config)){
@@ -419,16 +427,18 @@ sub parse_config {
 		if($line =~ m/^(\S+)\s*=\s*(\S+)\s*$/){
 			my($key,$value) = ($1,$2);
 			unless(grep{ /^$key$/ } @keys){
-				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring");
+				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring\n");
 			}
-			$key =~ s/-/_/g;
 			$config->{$key} = $value if $value =~ m/\S+/;
 		}
 	}
 	return($config);
 }
+
 sub dump_config{
 	my $config = shift;
+	delete($config->{defaults});
+	delete($config->{dump_config});
 	my $string=hash_to_config($config);
 	return $string;
 }
