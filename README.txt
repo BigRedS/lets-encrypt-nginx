@@ -3,122 +3,86 @@ lets-encrypt-nginx; script for configuring nginx and lets encrypt.
 
 USAGE:
 
-    lets-encrypt-nginx <options> --domains [path]
+  lets-encrypt-nginx [ <config-file> ] [--sites <sites-list>] [options]
 
-  or
+  config-file defaults to ./lengx.conf; must be first argument when set
+  sites-list defaults to ./sites.conf
 
-    lets-encrypt-nginx --generate-tlds-file
+See CONFIG and SITES below for a description of those two files. 
 
+Options:
 
-Where [path] is to a file containing a list of domains, one per line.
+  --nocleartext
 
-OPTIONS:
-(default/current values in brackets)
+    Don't insert config to cause Nginx to listen for cleartext HTTP (on port
+    80 by default). This makes nginx an SSL-terminator only.
 
-  --tlds-list-file [path]
-      file containing a list of TLDs; see 'TLDS' below. 
-      (./tlds.txt)
+  --no-write-nginx, --no-write-certbot, --no-write
 
-  --get-tlds-script [path]
-      path to script for generating tlds-list-file 
-      (./get-tld-list)
-
-  --clobber-certbot
-  --clobber-nginx
-      Silently overwrite existing config for certbot and/or nginx respectively. 
-      default is to print a warning and not overwrite.
-
-  --skip-certbot
-  --skip-nginx
-      Skip certbot or Nginx configuration, respectively.
-
-  --dump-certbot
-  --dump-nginx
-      Rather than create/enable config files, just print all generated config to
-      stdout. Overriden by the 'skip' equivalents.
-      dump-certbot is probably useless outside of debugging.
+    Don't write nginx config, certbot config, or either. Assembles the config, 
+    but skips the bit where it would be writen.
 
 
-  nginx:
+  --no-run-nginx, --no-run-certbot, --no-run
+  
+    Don't run the nginx site-enabling command,  don't run the certbot cert-
+    issuing command, or don't run either. 
 
-    --nginx-ssl-socket [port or ip-address:port]
-        argument to nginx's 'listen' directive, for SSL connections. Do not
-        include trailing 'ssl' at the end; *just* the socket (443)
 
-    --nginx-cleartext-socket [port or ip-address:port]
-        same, for cleartext (80)
+  --clobber-nginx, --clobber-certbot, --clobber-both
 
-    --nginx-nocleartext 
-        default is to add a 'listen 80' line to the nginx config. Set this to skip
-        that
+    Overwrite existing nginx configs, certbot configs, or both. Default is to
+    print a warning and skip the site.
 
-    --nginx-backend [url]
-        URL to proxied-to backend (http://127.0.0.1)
 
-    --nginx-log-path-prefix [path]
-        Used to create error and access log paths for the nginx config. The string
-        '%SITENAME%' is replaced with the site name, and then '_error.log' or 
-        '_access.log' is appended.
-        (/var/log/nginx/%SITE_NAME%)
+  --skip-nginx --skip-certbot
 
-    --nginx-config-dir [path]
-        path to nginx sites-available directory (/etc/nginx/sites-available/);
+    Skip all nginx configuring, or skip all certbot configuration. Calling with
+    both is permitted, but pointless.
 
-    --nginx-enable-site [command]
-        thing to execute to enable the config that's presumably been written to 
-        sites-avilable. Passed the file basename as its only argument; expects to
-        have something like this installed: https://github.com/perusio/nginx_ensite
-        Disable this by passing `/bin/true`
-        (nginx_ensite)
 
-    --nginx-include-file [path]
-        path to a file to include in the Nginx config. Is inserted verbatim, at the 
-        end. It probably wants every line to be indented by one tab, for neatness' 
-        sake
-        ()
-        
-  certbot:
+  --dump-nginx, --dump-certbot
 
-    --certbot-config-dir [path]
-        directory in which certbot config files are created 
-       (/etc/letsencrypt/configs/)
+    Dump nginx config to stdout, or dump certbot config to stdout (rather than
+    writing to files). Not affected by --no-write*
 
-    --certbot-key-size [bits]
-        number of bits for the private key (2048)
+  --dump-config, --dump-sites
+
+    Dump the configuration, or site definitions, to stdout before doing any 
+    processing. Config is dumped in the format of a valid config file, but sites
+    are not.
     
-    --certbot-server-url [url]
-        URL to the certbot server (https://acme-v01.api.letsencrypt.org/directory)
-    
-    --certbot-email [email-address]
-        Email address for the Let's Encrypt cert (letsencrypt@my-company.net)
-    
-    --certbot-webroot [path]
-        Webroot directory (/var/www/letsencrypt/)
-    
-    --certbot-binary [path]
-        Path to certbot itself (/opt/letsencrypt/letsencrypt-auto)
+CONFIG
 
+The config file is a series of key=value pairs, and the keys exactly match those
+used in the %config hash internally. Check the top of the script for currently-
+known ones, and use --dump-config to produce the file. 
 
-TLDS
+Unsupported config keys cause a warning to be displayed, but don't prevent execution.
+Lines beginning '#' are skipped as comments.
 
-In order to determine a reasonable 'site name', this script needs to know which portion 
-of a domain name is TLD or Second-level domain (SLD), and which portion is the part that
-was actually registered by the customer.
+There should be an example at ./lengx.conf.example
 
-It uses a file tlds.txt (specified with --tlds-list-file) as reference, which is a list,
-one-item-per-line, of every IANA TLD, and every country-specific second-level domain 
-(.co.uk, for example). Each domain is checked against this list, and the longest-matching
-string is taken to deduce the registered domain. "mycompany.co.uk" would match both '.co.uk' 
-and '.uk.'; .co.uk would be selected as the longest-match, and so 'mycompany' would be the 
-name of the site, and 'mycompany.com' seen as related.
+SITES
 
-This file can be created with the included get-tld-list script:
+Each site is defined, at minimum, by a single space-separated line of domain names. 
+The first item in this list is taken as the name of the site. Options may be set on 
+successive lines that begin with spaces; currently supported options are:
 
-    get-tld-list > ./tlds.txt
+  auto_www - if set to 'on', automatically add the 'www' subdomain to all names. Set
+             to 'off' to disable.
+  backend  - literal string used as the argument to nginx's proxy_pass
 
-or by invoking this with --generate-tlds-file:
+The first site in the file may be named '_default' to set defaults for all successive 
+sites. Lines beginning '#' are skipped as comments.
 
-   lets-encrypt-nginx --generate-tlds-file
+There should be an example at ./sites.conf.example
 
-which will silently overwrite ./tlds.txt (or whatever's set with --tlds-list-file).
+DEBUGGING
+
+Set the environment variable 'DEBUG' to anything to have helpful(!) messages printed to stderr:
+
+    DEBUG=1 lets-encrypt-nginx --no-run --no-write 
+
+is a likely invocation here.
 
