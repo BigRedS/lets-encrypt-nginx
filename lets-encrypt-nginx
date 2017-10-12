@@ -166,6 +166,7 @@ domains = $names
 rsa-key-size = $config->{certbot_key_size}
 server = $config->{certbot_server_url}
 email = $config->{certbot_email}
+cert-name $site_name
 text = True
 authenticator = webroot
 webroot-path = $config->{certbot_webroot_path}
