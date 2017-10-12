@@ -56,7 +56,7 @@ GetOptions(
 
 	'no-run-nginx' => \$config->{nginx_norun},
 	'no-run-certbot' => \$config->{certbot_norun},
-	'no-run-both' => \$norun,
+	'no-run' => \$norun,
 
 	'no-cleartext' => \$config->{nginx_nocleartext},
 
@@ -420,7 +420,7 @@ Options:
     but skips the bit where it would be writen.
 
 
-  --no-run-nginx, --no-run-certbot, --no-run-both
+  --no-run-nginx, --no-run-certbot, --no-run
   
     Don't run the nginx site-enabling command,  don't run the certbot cert-
     issuing command, or don't run either. 
@@ -479,7 +479,7 @@ DEBUGGING
 
 Set the environment variable 'DEBUG' to anything to have helpful(!) messages printed to stderr:
 
-    DEBUG=1 lets-encrypt-nginx --norun --nowrite 
+    DEBUG=1 lets-encrypt-nginx --no-run --no-write 
 
 is a likely invocation here.
 
