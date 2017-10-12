@@ -88,3 +88,8 @@ Set the environment variable 'DEBUG' to anything to have helpful(!) messages pri
 
 is a likely invocation here.
 
+There are two canonical repositories for this, each with equal status:
+
+  https://git.avi.co/avi/lets-encrypt-nginx
+  https://bitbucket.org/BigRedS/lets-encrypt-nginx
+
