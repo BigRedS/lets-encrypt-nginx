@@ -22,11 +22,13 @@ $config->{sites_list} = './sites.conf';
 
 $config->{defaults}->{auto_www} = 1;
 $config->{defaults}->{backend} = '127.0.0.1:80';
+$config->{defaults}->{nginx_ssl} = 1;
 
 $config->{nginx_ssl_socket} = '443';
 $config->{nginx_config_dir} = '/etc/nginx/sites-available';
 $config->{nginx_enable_site} = 'nginx_ensite';
 #$config->{nginx_nocleartext};
+#$config->{nginx_nossl};
 $config->{nginx_log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
 $config->{nginx_cleartext_socket} = '80';
 
@@ -237,20 +239,20 @@ sub create_nginx_config{
 	print STDERR "    error_log: $error_log\n" if $debug;
 
 	my $nginx_config = "server {\n";
-	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n";
+	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
 	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($config->{nginx_cleartext_socket} =~ m/.+/);
 	$nginx_config.=<<"EOF";
 	server_name $server_names;
 	location / {
 		proxy_pass $site->{backend};
 	}
-
-	ssl_certificate $ssl_cert;
-	ssl_certificate_key $ssl_key;
-
 	access_log $access_log;
 	error_log $error_log;
 EOF
+
+	$nginx_config.="\tssl_certificate $ssl_cert\n" if $site->{nginx_ssl} > 0;
+	$nginx_config.="\tssl_certificate_key $ssl_key\n" if $config->{nginx_ssl} > 0;
+
 
 	if($config->{nginx_include_lines}->[0]){
 		$nginx_config.=join("", @{$config->{nginx_include_lines}});
@@ -298,6 +300,7 @@ sub get_sites{
 			if($sitename eq '_default'){
 				$config->{defaults}->{auto_www} = $sites{_default}->{auto_www} if $sites{_default}->{auto_www} =~ m/.+/;
 				$config->{defaults}->{backend} = $sites{_default}->{backend} if $sites{_default}->{backend} =~ m/.+/;
+				$config->{defaults}->{nginx_ssl} = $sites{_default}->{nginx_ssl} if $sites{_default}->{nginx_ssl} =~ m/.+/;
 				delete($sites{_default});
 			}
 
@@ -308,17 +311,18 @@ sub get_sites{
 			
 			$sites{$sitename}->{auto_www} = $config->{defaults}->{auto_www};
 			$sites{$sitename}->{backend} = $config->{defaults}->{backend};
+			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl};
 		}
 		if($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
-			if($key eq 'auto_www'){
+			if($key =~ m/^(auto_www|nginx_ssl)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
-					$sites{$sitename}->{auto_www} = '1';
+					$sites{$sitename}->{$key} = '1';
 				}elsif($value =~ m/^n|0/i or $value =~ m/^off/i){
-					$sites{$sitename}->{auto_www} = '0';
+					$sites{$sitename}->{$key} = '0';
 				}else{
-					print STDERR "Failed attempt to set 'auto_www' to '$value'";
+					print STDERR "Failed attempt to set '$key' to '$value'";
 				}
 			}
 		}
@@ -466,9 +470,11 @@ Each site is defined, at minimum, by a single space-separated line of domain nam
 The first item in this list is taken as the name of the site. Options may be set on 
 successive lines that begin with spaces; currently supported options are:
 
-  auto_www - if set to 'on', automatically add the 'www' subdomain to all names. Set
-             to 'off' to disable.
-  backend  - literal string used as the argument to nginx's proxy_pass
+  auto_www  - if set to 'on', automatically add the 'www' subdomain to all names. Set
+              to 'off' to disable. Not implemented yet!
+  backend   - literal string used as the argument to nginx's proxy_pass
+  nginx_ssl - set to 0 to skip seting up nginx SSL (so you can have a cleartext site 
+              running before requesting certs from Let's Encrypt).
 
 The first site in the file may be named '_default' to set defaults for all successive 
 sites. Lines beginning '#' are skipped as comments.
