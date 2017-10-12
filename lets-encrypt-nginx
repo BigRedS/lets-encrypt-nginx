@@ -12,6 +12,7 @@ my $nowrite = undef;
 my $clobber = undef;
 my $dump_sites = undef;
 my $dump_config = undef;
+my $single_site = undef;
 
 my $config_file = './lengx.conf';
 
@@ -71,6 +72,7 @@ GetOptions(
 	'dump-certbot' => \$config->{certbot_dump},
 
 	'sites=s' => \$config->{sites_list},
+	'site=s' => \$single_site,
 
 	'dump-config' => \$config->{dump_config},
 	'dump-sites' => \$dump_sites,
@@ -93,8 +95,6 @@ $config->{nginx_config_dir} =~ s#//#/#g;
 if($help){
 	usage();
 }
-
-
 
 if($config->{dump_config}){
 	print dump_config($config);
@@ -122,6 +122,15 @@ if($dump_sites){
 	exit;
 }
 
+if($single_site){
+	if(my $site = $sites{$single_site}){
+		%sites = ();
+		$sites{$single_site} = $site;
+	}else{
+		print STDERR "Site '$single_site' not found. Aborting";
+		exit 254;
+	}
+}
 
 foreach my $sitename (keys(%sites)){
 
@@ -411,6 +420,10 @@ USAGE:
 See CONFIG and SITES below for a description of those two files. 
 
 Options:
+
+  --site <sitename>
+
+    Only process site named 'sitename'
 
   --no-write-nginx, --no-write-certbot, --no-write
 

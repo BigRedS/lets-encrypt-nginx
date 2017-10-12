@@ -12,6 +12,10 @@ See CONFIG and SITES below for a description of those two files.
 
 Options:
 
+  --site <sitename>
+
+    Only process site named 'sitename'
+
   --no-write-nginx, --no-write-certbot, --no-write
 
     Don't write nginx config, certbot config, or either. Assembles the config, 
