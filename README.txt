@@ -12,11 +12,6 @@ See CONFIG and SITES below for a description of those two files.
 
 Options:
 
-  --nocleartext
-
-    Don't insert config to cause Nginx to listen for cleartext HTTP (on port
-    80 by default). This makes nginx an SSL-terminator only.
-
   --no-write-nginx, --no-write-certbot, --no-write
 
     Don't write nginx config, certbot config, or either. Assembles the config, 
@@ -69,9 +64,12 @@ Each site is defined, at minimum, by a single space-separated line of domain nam
 The first item in this list is taken as the name of the site. Options may be set on 
 successive lines that begin with spaces; currently supported options are:
 
-  auto_www - if set to 'on', automatically add the 'www' subdomain to all names. Set
-             to 'off' to disable.
-  backend  - literal string used as the argument to nginx's proxy_pass
+  auto_www  - if set to 'on', automatically add the 'www' subdomain to all names. Set
+              to 'off' to disable. Not implemented yet!
+  backend   - literal string used as the argument to nginx's proxy_pass
+  nginx_ssl - set to 0 to skip setting up nginx SSL (so you can have a cleartext site 
+              running before requesting certs from Let's Encrypt).
+  nginx_clear - set to 0 to skip setting up nginx on port 80
 
 The first site in the file may be named '_default' to set defaults for all successive 
 sites. Lines beginning '#' are skipped as comments.

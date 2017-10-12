@@ -29,8 +29,6 @@ $config->{defaults}->{nginx_clear} = 1;
 $config->{nginx_ssl_socket} = '443';
 $config->{nginx_config_dir} = '/etc/nginx/sites-available';
 $config->{nginx_enable_site} = 'nginx_ensite';
-#$config->{nginx_nocleartext};
-#$config->{nginx_nossl};
 $config->{nginx_log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
 $config->{nginx_cleartext_socket} = '80';
 
@@ -62,8 +60,6 @@ GetOptions(
 	'no-run-certbot' => \$config->{certbot_norun},
 	'no-run' => \$norun,
 
-	'no-cleartext' => \$config->{nginx_nocleartext},
-
 	'clobber-nginx' => \$config->{nginx_clobber},
 	'clobber-certbot' => \$config->{certbot_clobber},
 	'clobber-both' => \$clobber,
@@ -85,8 +81,6 @@ GetOptions(
 $config->{nginx_norun} = $config->{certbot_norun} = 1 if $norun;
 $config->{nginx_nowrite} = $config->{certbot_nowrite} = 1 if $nowrite;
 $config->{nginx_clobber} = $config->{certbot_clobber} = 1 if $clobber;
-
-$config->{nginx_cleartext_socket} = undef if $config->{nginx_nocleartext};
 
 $config->{certbot_config_dir}.='/';
 $config->{certbot_config_dir} =~ s#//#/#g;
@@ -340,7 +334,7 @@ sub get_sites{
 sub parse_config {
 	my $file = shift;
 	my $config;
-	my @keys = qw/nginx_ssl_socket nginx_cleartext_socket nginx_nocleartext nginx_log_path_prefix nginx_config_dir
+	my @keys = qw/nginx_ssl_socket nginx_cleartext_socket nginx_log_path_prefix nginx_config_dir
 	              nginx_clobber nginx_enable_site nginx_include_file nginx_skip
 	              certbot_config_dir certbot_key_size certbot_server_url certbot_email certbot_webroot_path 
 		      certbot_binary certbot_clobber certbot_skip
@@ -417,11 +411,6 @@ USAGE:
 See CONFIG and SITES below for a description of those two files. 
 
 Options:
-
-  --nocleartext
-
-    Don't insert config to cause Nginx to listen for cleartext HTTP (on port
-    80 by default). This makes nginx an SSL-terminator only.
 
   --no-write-nginx, --no-write-certbot, --no-write
 
