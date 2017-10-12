@@ -2,8 +2,10 @@ _default
  backend 10.0.0.1:80
  auto_www on
  nginx_ssl on
+ nginx_clear off
 
 example.net example.org example.com
+  nginx_clear on
 
 staging.example.co.uk www.example.co.uk example.co.uk
   backend 10.0.0.2:80

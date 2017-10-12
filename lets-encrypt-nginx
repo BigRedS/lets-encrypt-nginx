@@ -23,6 +23,8 @@ $config->{sites_list} = './sites.conf';
 $config->{defaults}->{auto_www} = 1;
 $config->{defaults}->{backend} = '127.0.0.1:80';
 $config->{defaults}->{nginx_ssl} = 1;
+$config->{defaults}->{nginx_clear} = 1;
+
 
 $config->{nginx_ssl_socket} = '443';
 $config->{nginx_config_dir} = '/etc/nginx/sites-available';
@@ -241,7 +243,7 @@ sub create_nginx_config{
 
 	my $nginx_config = "server {\n";
 	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($config->{nginx_cleartext_socket} =~ m/.+/);
+	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
 	$nginx_config.=<<"EOF";
 	server_name $server_names;
 	location / {
@@ -302,6 +304,7 @@ sub get_sites{
 				$config->{defaults}->{auto_www} = $sites{_default}->{auto_www} if $sites{_default}->{auto_www} =~ m/.+/;
 				$config->{defaults}->{backend} = $sites{_default}->{backend} if $sites{_default}->{backend} =~ m/.+/;
 				$config->{defaults}->{nginx_ssl} = $sites{_default}->{nginx_ssl} if $sites{_default}->{nginx_ssl} =~ m/.+/;
+				$config->{defaults}->{nginx_clear} = $sites{_default}->{nginx_clear} if $sites{_default}->{nginx_clear} =~ m/.+/;
 				delete($sites{_default});
 			}
 
@@ -313,11 +316,12 @@ sub get_sites{
 			$sites{$sitename}->{auto_www} = $config->{defaults}->{auto_www};
 			$sites{$sitename}->{backend} = $config->{defaults}->{backend};
 			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl};
+			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
 		}
 		if($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
-			if($key =~ m/^(auto_www|nginx_ssl)$/){
+			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';
 				}elsif($value =~ m/^n|0/i or $value =~ m/^off/i){
@@ -474,8 +478,9 @@ successive lines that begin with spaces; currently supported options are:
   auto_www  - if set to 'on', automatically add the 'www' subdomain to all names. Set
               to 'off' to disable. Not implemented yet!
   backend   - literal string used as the argument to nginx's proxy_pass
-  nginx_ssl - set to 0 to skip seting up nginx SSL (so you can have a cleartext site 
+  nginx_ssl - set to 0 to skip setting up nginx SSL (so you can have a cleartext site 
               running before requesting certs from Let's Encrypt).
+  nginx_clear - set to 0 to skip setting up nginx on port 80
 
 The first site in the file may be named '_default' to set defaults for all successive 
 sites. Lines beginning '#' are skipped as comments.

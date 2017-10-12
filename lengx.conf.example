@@ -6,7 +6,7 @@
 sites_list = './sites.conf.example'
 
 # The directory certs are written to
-certs_dir = '/etc/letsencrypt/certs/'
+certs_dir = '/etc/letsencrypt/live/'
 
 # Nginx
 #######
@@ -16,11 +16,11 @@ certs_dir = '/etc/letsencrypt/certs/'
 #nginx_skip = 1
 
 # Inserted between 'listen' and 'ssl' in the nginx config so can be a port or 
-# ip:port combination:
+# ip:port combination; configures the SSL site.
 nginx_ssl_socket = 443
 
-# Not-used if --no-cleartext is passed. In that case, nginx doesn't listen for 
-# cleartext anywhere.
+# Used on a 'listen' line where the site is configured with nginx_clear as 
+# being 'on'; enables a not-SSL site.
 nginx_cleartext_socket = 80
 
 # Don't have nginx listen on nginx_cleartex_socket, whatever it is set to:
@@ -60,7 +60,7 @@ nginx_log_path_prefix = /var/log/nginx/%SITE_NAME%
 #nginx_skip = 1
 
 # Path to thee certbot executable
-certbot_binary = /usr/local/bin/certbot
+certbot_binary = certbot
 
 # One config file per site is written to here; this is where we create config,
 # and need not be anything certbot is already aware of
