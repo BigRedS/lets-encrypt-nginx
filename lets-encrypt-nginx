@@ -149,7 +149,7 @@ foreach my $sitename (keys(%sites)){
 
 sub create_certbot_config{
 	my ($site,$config) = @_;
-	my $names = join(' ', @{$site->{domains_list}});
+	my $names = join(',', @{$site->{domains_list}});
 	my $site_name = $site->{sitename};
 	
 
