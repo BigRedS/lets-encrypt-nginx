@@ -5,6 +5,7 @@ use Getopt::Long;
 use Data::Dumper;
 
 my $debug = $ENV{'DEBUG'};
+my $verbose = 1;
 
 my $help = undef;
 my $norun = undef;
@@ -105,12 +106,6 @@ if(!$config->{sites_list}){
 	print STDERR 'Error: no domains list specified. Try with --help\n';
 	exit 1;
 }
-
-
-# # #
-# #
-#
-
 if($debug){
 	print STDERR "Debug on; dumping config\n";
 	print STDERR dump_config($config);
@@ -187,6 +182,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 		print $fh $letsencrypt;
 		close($fh);
+		print "Wrote '$config_file'\n" if $verbose >= 1;
 	}
 
 	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
@@ -223,7 +219,7 @@ sub create_nginx_config{
 			close($fh_include);
 			$config->{nginx_include_lines} = \@include_lines;
 		}else{
-			print STDERR "WARN: Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n";
+			print "Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n" if $verbose >= 2;
 		}
 	}
 
@@ -276,6 +272,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
 		print $fh $nginx_config;
 		close($fh);
+		print "Wrote '$config_file'\n" if $verbose >= 1;
 	}
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
