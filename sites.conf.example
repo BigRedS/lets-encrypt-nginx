@@ -1,16 +1,56 @@
+# This is a sites config file for lets-encrypt-nginx.
+#
+# It is a list of space-separated lists of hostnames, one per line. Each space-
+# separated list may have a number of options, set on whitespace-indented lines
+# below it.
+#
+# A 'site' is a series of hostnames that will share an nginx config (and hence a 
+# backend) and a certbot certificate.
+# 
+# Lines beginning with a '#' (or whitespace and then a '#') are comments
+
+
+# If the first-defined site in the file has '_default' in place of a domains 
+# list, it sets the default values for successive sites. This one happens to 
+# use every option, and sets them all to the built-in defaults:
 _default
- backend 10.0.0.1:80
- auto_www on
- nginx_ssl on
- nginx_clear off
-
-example.net example.org example.com
+  # Used verbatim as the argument to proxy_pass in nginx
+  backend 127.0.0.1:8080
+  # If 'on', will create a 'www.' subdomain of every domain (and subdomain) in 
+  # the site (and add these names to the certificate)
+  auto_www on
+  # If this is set to 'off', nginx is not configured for an SSL site (this does
+  # not disable the certbot stuff). Only really useful if the domain needs to 
+  # work in cleartext for some time before you request the certs.
+  nginx_ssl on
+  # If this is set to 'off', nginx is not configured for a cleartext socket for
+  # this site; you'll need to set this to 'off' if something else is doing the 
+  # cleartext termination locally, and 'on' if nginx is.
   nginx_clear on
+  # You cannot have a wildcard name in the letsencrypt certs, but if this is set
+  # to 'on' then the wildcards are added to the Nginx config anyway. These wild
+  # subdomains will work fine in cleartext, and go to the right place with the
+  # wrong certs in SSL.
+  cleartext_wildcard off
 
+
+# This just uses the config under _default to configure these three domains as
+# a single 'site'. Since auto_www is 'on' here (because of the default site), 
+# the cert and nginx config will include www.example.net, www.example.org and
+# www.example.com:
+example.net example.org example.com
+
+# Here auto_www is set to 'off' to avoid www.staging.example.co.uk from being 
+# configured; instead, we've put 'www.example.co.uk' in the domains list
 staging.example.co.uk www.example.co.uk example.co.uk
   backend 10.0.0.2:80
   auto_www off
 
-example.org example.org.uk
+# cleartext_wildcard is enabled here, so this site will have *.example.edu and 
+# *.example.org.uk in the nginx server_name, but not in the certificate. Because
+# auto_www is left on (from the default) the certificate will have www.example.edu
+# and www.example.org.uk as names in addition to example.edu and example.org.uk
+example.edu example.org.uk
   backend 10.0.0.3:80
   nginx_ssl off
+  cleartext_wildcard on
