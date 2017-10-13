@@ -91,8 +91,6 @@ $config->{certbot_config_dir} =~ s#//#/#g;
 $config->{nginx_config_dir}.='/';
 $config->{nginx_config_dir} =~ s#//#/#g;
 
-
-
 if($help){
 	usage();
 }
@@ -106,6 +104,7 @@ if(!$config->{sites_list}){
 	print STDERR 'Error: no domains list specified. Try with --help\n';
 	exit 1;
 }
+
 if($debug){
 	print STDERR "Debug on; dumping config\n";
 	print STDERR dump_config($config);
@@ -131,17 +130,18 @@ foreach my $sitename (keys(%sites)){
 
 	my $site = $sites{$sitename};
 	print STDERR "site: $sitename\n" if $debug;
-	print "  server names: ".$site->{domains_list}."\n" if $debug;
-	if($config->{nginx_skip}){
-		print STDERR "  Skipping nginx \n" if $debug;
-	}else{
-		create_nginx_config($site, $config);
-	}
 
 	if($config->{certbot_skip}){
 		print STDERR "  Skipping certbot\n" if $debug
 	}else{
 		create_certbot_config($site,$config);
+	}
+
+	print "  server names: ".$site->{domains_list}."\n" if $debug;
+	if($config->{nginx_skip}){
+		print STDERR "  Skipping nginx \n" if $debug;
+	}else{
+		create_nginx_config($site, $config);
 	}
 }
 
