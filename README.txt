@@ -60,7 +60,7 @@ known ones, and use --dump-config to produce the file.
 Unsupported config keys cause a warning to be displayed, but don't prevent execution.
 Lines beginning '#' are skipped as comments.
 
-There should be an example at ./lengx.conf.example
+See ./lengx.conf.example for all available config options.
 
 SITES
 
@@ -68,7 +68,7 @@ Each site is defined, at minimum, by a single space-separated line of domain nam
 The first item in this list is taken as the name of the site, and  options may be 
 set on successive lines that begin with spaces.
 
-See ./sites.conf.example for the full set.
+See ./sites.conf.example for an example.
 
 DEBUGGING
 
