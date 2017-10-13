@@ -5,7 +5,6 @@ use Getopt::Long;
 use Data::Dumper;
 
 my $debug = $ENV{'DEBUG'};
-my $verbose = 1;
 
 my $help = undef;
 my $norun = undef;
@@ -18,6 +17,8 @@ my $single_site = undef;
 my $config_file = './lengx.conf';
 
 my $config = {};
+
+$config->{verbosity} = 1;
 
 $config->{certs_dir} = '/etc/ssl/certs/';
 $config->{sites_list} = './sites.conf';
@@ -77,6 +78,7 @@ GetOptions(
 
 	'dump-config' => \$config->{dump_config},
 	'dump-sites' => \$dump_sites,
+	'verbosity' => \$config->{verbosity},
 
 	'help|h' => \$help,
 ) or die ('Failed to parse arguments');
@@ -182,7 +184,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 		print $fh $letsencrypt;
 		close($fh);
-		print "Wrote '$config_file'\n" if $verbose >= 1;
+		print "Wrote '$config_file'\n" if $config->{verbosity} >= 1;
 	}
 
 	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
@@ -219,7 +221,7 @@ sub create_nginx_config{
 			close($fh_include);
 			$config->{nginx_include_lines} = \@include_lines;
 		}else{
-			print "Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n" if $verbose >= 2;
+			print "Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n" if $config->{verbosity} >= 2;
 		}
 	}
 
@@ -272,7 +274,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
 		print $fh $nginx_config;
 		close($fh);
-		print "Wrote '$config_file'\n" if $verbose >= 1;
+		print "Wrote '$config_file'\n" if $config->{verbosity} >= 1;
 	}
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
