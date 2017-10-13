@@ -65,20 +65,10 @@ There should be an example at ./lengx.conf.example
 SITES
 
 Each site is defined, at minimum, by a single space-separated line of domain names. 
-The first item in this list is taken as the name of the site. Options may be set on 
-successive lines that begin with spaces; currently supported options are:
+The first item in this list is taken as the name of the site, and  options may be 
+set on successive lines that begin with spaces.
 
-  auto_www  - if set to 'on', automatically add the 'www' subdomain to all names. Set
-              to 'off' to disable. Not implemented yet!
-  backend   - literal string used as the argument to nginx's proxy_pass
-  nginx_ssl - set to 0 to skip setting up nginx SSL (so you can have a cleartext site 
-              running before requesting certs from Let's Encrypt).
-  nginx_clear - set to 0 to skip setting up nginx on port 80
-
-The first site in the file may be named '_default' to set defaults for all successive 
-sites. Lines beginning '#' are skipped as comments.
-
-There should be an example at ./sites.conf.example
+See ./sites.conf.example for the full set.
 
 DEBUGGING
 
