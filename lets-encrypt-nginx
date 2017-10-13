@@ -227,8 +227,9 @@ sub create_nginx_config{
 
 	my $enable_site_cmd = $config->{nginx_enable_site}.' '.$site_name;
 
-	my $ssl_cert = $config->{certs_dir}.$site_name.'.chained.crt';
-	my $ssl_key = $config->{certs_dir}.$site_name.'.key';
+	my $ssl_cert = $config->{certs_dir}.$site_name.'/fullchain.pem';
+	my $ssl_key = $config->{certs_dir}.$site_name.'/privkey.pem';
+
 
 	print STDERR "    ssl_cert: $ssl_cert\n" if $debug;
 	print STDERR "    ssl_key: $ssl_key\n" if $debug;
@@ -254,8 +255,10 @@ sub create_nginx_config{
 	error_log $error_log;
 EOF
 
-	$nginx_config.="\tssl_certificate $ssl_cert\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="\tssl_certificate_key $ssl_key\n" if $config->{nginx_ssl} > 0;
+	$nginx_config.="\tssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
+	$nginx_config.="\tssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
+
+
 
 
 	if($config->{nginx_include_lines}->[0]){
