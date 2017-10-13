@@ -1,8 +1,8 @@
 # This is a sites config file for lets-encrypt-nginx.
 #
-# It is a list of space-separated lists of hostnames, one per line. Each space-
-# separated list may have a number of options, set on whitespace-indented lines
-# below it.
+# It is a list of space-separated lists of domain names, one per line. Each 
+# space-separated list may have a number of options, set on whitespace-indented
+# lines below it. The site's 'name' is the first domain name in the list.
 #
 # A 'site' is a series of hostnames that will share an nginx config (and hence a 
 # backend) and a certbot certificate.
@@ -37,7 +37,8 @@ _default
 # This just uses the config under _default to configure these three domains as
 # a single 'site'. Since auto_www is 'on' here (because of the default site), 
 # the cert and nginx config will include www.example.net, www.example.org and
-# www.example.com:
+# www.example.com. The site will be called 'example.net' and so that will be the
+# filename of the nginx and of the certbot config.
 example.net example.org example.com
 
 # Here auto_www is set to 'off' to avoid www.staging.example.co.uk from being 
