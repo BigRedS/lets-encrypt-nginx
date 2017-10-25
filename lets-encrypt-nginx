@@ -94,6 +94,8 @@ $config->{certbot_config_dir} =~ s#//#/#g;
 $config->{nginx_config_dir}.='/';
 $config->{nginx_config_dir} =~ s#//#/#g;
 
+$config->{verbosity} = 10 if $debug;
+
 if($help){
 	usage();
 }
@@ -133,17 +135,19 @@ foreach my $sitename (keys(%sites)){
 
 	my $site = $sites{$sitename};
 	print STDERR "site: $sitename\n" if $debug;
+	print "  server names: ".join(" " , @{$site->{domains_list}})."\n" if $debug;
 
-	if($config->{certbot_skip}){
-		print STDERR "  Skipping certbot\n" if $debug
+	f($config->{certbot_skip}){
+		print STDERR "  Skipping certbot\n" if $debug;
 	}else{
+		print STDERR "  Doing certbot\n" if $debug;
 		create_certbot_config($site,$config);
 	}
 
-	print "  server names: ".$site->{domains_list}."\n" if $debug;
 	if($config->{nginx_skip}){
 		print STDERR "  Skipping nginx \n" if $debug;
 	}else{
+		print STDERR "  Doing nginx\n" if $debug;
 		create_nginx_config($site, $config);
 	}
 }
@@ -157,13 +161,12 @@ sub create_certbot_config{
 	
 
 	my $config_file = $config->{certbot_config_dir}.$site_name;
-	print STDERR "  certbot config file: '$config_file'" if $debug;
+	print STDERR "  certbot config file: '$config_file'\n" if $debug;
 	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
 		if ($config->{verbosity} > 0){
 			print STDERR "CertBot config '$config_file' already exists; skipping\n"
 		}
 	}
-	return 1;
 	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
 
 
