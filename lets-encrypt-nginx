@@ -297,6 +297,8 @@ EOF
 		system($enable_site_cmd);
 		if($? != 0){
 			print "Failed to enable '$site_name' by running `$enable_site_cmd`. Exited $?\n";
+		}else{
+			print "Enabled site '$site_name'\n";
 		}
 	}
 	return;
