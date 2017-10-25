@@ -137,7 +137,7 @@ foreach my $sitename (keys(%sites)){
 	print STDERR "site: $sitename\n" if $debug;
 	print "  server names: ".join(" " , @{$site->{domains_list}})."\n" if $debug;
 
-	f($config->{certbot_skip}){
+	if($config->{certbot_skip}){
 		print STDERR "  Skipping certbot\n" if $debug;
 	}else{
 		print STDERR "  Doing certbot\n" if $debug;
