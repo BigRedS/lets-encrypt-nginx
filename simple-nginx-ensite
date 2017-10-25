@@ -2,6 +2,14 @@
 
 site=$1
 
+if [ -z $site ]; then
+	exit 254
+fi
+
+if [ -f /etc/nginx/sites-enabled/$site ]; then
+	exit 0
+fi
+
 ln -s /etc/nginx/sites-available/$site /etc/nginx/sites-enabled/
 
 exit $?
