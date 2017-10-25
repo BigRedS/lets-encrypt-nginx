@@ -188,7 +188,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 		print $fh $letsencrypt;
 		close($fh);
-		print "Wrote '$config_file'\n" if $config->{verbosity} >= 1;
+		print "Wrote '$config_file'\n";
 	}
 
 	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
@@ -287,7 +287,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
 		print $fh $nginx_config;
 		close($fh);
-		print "Wrote '$config_file'\n" if $config->{verbosity} >= 1;
+		print "Wrote '$config_file'\n";;
 	}
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
