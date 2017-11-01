@@ -161,7 +161,7 @@ sub create_certbot_config{
 	
 
 	my $config_file = $config->{certbot_config_dir}.$site_name;
-	print STDERR "  certbot config file: '$config_file'\n" if $debug;
+	print STDERR "    certbot config file: '$config_file'\n" if $debug;
 	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
 		if ($config->{verbosity} > 0){
 			print STDERR "CertBot config '$config_file' already exists; skipping\n"
@@ -192,6 +192,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 		print $fh $letsencrypt;
 		close($fh);
+		print "    " if $debug; # To more neatly align the following line
 		print "Wrote '$config_file'\n";
 	}
 
@@ -215,7 +216,7 @@ sub create_nginx_config{
 	$server_names.=join(" ", ' ',  @{$site->{cleartext_domains_list}}) if $site->{cleartext_wildcard} > 0;
 	
 	my $config_file = $config->{nginx_config_dir}.$site->{sitename};
-	print STDERR "  Nginx config file: $config_file\n" if $debug;
+	print STDERR "    Nginx config file: $config_file\n" if $debug;
 	if(-f $config_file and !$config->{nginx_clobber} and !$config->{nginx_dump}){
 		if($config->{verbosity} > 0){
 			print STDERR "Nginx config '$config_file' already exists; skipping\n";
@@ -294,7 +295,8 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
 		print $fh $nginx_config;
 		close($fh);
-		print "Wrote '$config_file'\n";;
+		print "    " if $debug; # To more neatly align the following line
+		print "Wrote '$config_file'\n";
 	}
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
