@@ -168,9 +168,10 @@ sub create_certbot_config{
 		}
 	}
 	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
-
+	my $now = localtime(time())."";
 
 my $letsencrypt = <<"EOF";
+# Written by lets-encrypt-nginx $now
 domains = $names
 rsa-key-size = $config->{certbot_key_size}
 server = $config->{certbot_server_url}
@@ -256,7 +257,10 @@ sub create_nginx_config{
 	print STDERR "    access_log: $access_log\n" if $debug;
 	print STDERR "    error_log: $error_log\n" if $debug;
 
-	my $nginx_config = "server {\n";
+	my $now = localtime(time())."";
+
+	my $nginx_config = "# Written by lets-encrypt-nginx $now\n";
+	$nginx_config.= "server {\n";
 	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
 	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
 	$nginx_config.=<<"EOF";
