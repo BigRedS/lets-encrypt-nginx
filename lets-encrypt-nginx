@@ -143,7 +143,7 @@ foreach my $sitename (keys(%sites)){
 		create_nginx_config($site, $config);
 	}
 
-	if($config->{certbot_skip}){
+	if($config->{certbot_skip} || $site->{certbot_skip}){
 		print STDERR "  Skipping certbot\n" if $debug
 	}else{
 		create_certbot_config($site,$config);
@@ -308,6 +308,7 @@ sub get_sites{
 				$config->{defaults}->{backend} = $sites{_default}->{backend} if $sites{_default}->{backend} =~ m/.+/;
 				$config->{defaults}->{nginx_ssl} = $sites{_default}->{nginx_ssl} if $sites{_default}->{nginx_ssl} =~ m/.+/;
 				$config->{defaults}->{nginx_clear} = $sites{_default}->{nginx_clear} if $sites{_default}->{nginx_clear} =~ m/.+/;
+				$config->{defaults}->{do_certs_if_script} = $sites{_default}->{do_certs_if_script} if $sites{_default}->{do_certs_if_script} =~ m/.+/;
 				delete($sites{_default});
 			}
 
@@ -320,10 +321,12 @@ sub get_sites{
 			$sites{$sitename}->{backend} = $config->{defaults}->{backend};
 			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl};
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
+			$sites{$sitename}->{do_certs_if_script} = $config->{defaults}->{do_certs_if_script};
 		}
 		if($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
+			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
 			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';
@@ -344,6 +347,24 @@ sub get_sites{
 				push(@new_names, "www.".$name);
 			}
 			$sites{$sitename}->{domains_list} = \@new_names;
+		}
+	}
+	foreach my $sitename (keys(%sites)){
+		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/){
+			my $check_cmd = $sites{$sitename}->{do_certs_if_script};
+			my $exit_status_sum = 0;
+			foreach my $domain_name (@{$sites{$sitename}->{domains_list}}){
+				$check_cmd.=" ".$domain_name;
+				system($check_cmd);
+				$exit_status_sum+=$?
+			}
+			if($exit_status_sum == 0){
+				$sites{$sitename}->{nginx_ssl} = 1;
+				$sites{$sitename}->{certbot_skip} = 0;
+			}else{
+				$sites{$sitename}->{nginx_ssl} = 0;
+				$sites{$sitename}->{certbot_skip} = 1;
+			}
 		}
 	}
 	return %sites;
