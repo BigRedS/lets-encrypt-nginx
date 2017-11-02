@@ -98,6 +98,8 @@ $config->{nginx_norun} = $config->{certbot_norun} = 1 if $norun;
 $config->{nginx_nowrite} = $config->{certbot_nowrite} = 1 if $nowrite;
 $config->{nginx_clobber} = $config->{certbot_clobber} = 1 if $clobber;
 
+$config->{nginx_clobber} = undef if $noclobber;
+$config->{certbot_clobber} = undef if $noclobber;
 $config->{nginx_clobber} = undef if $config->{nginx_noclobber};
 $config->{certbot_clobber} = undef if $config->{nginx_noclobber};
 
@@ -175,15 +177,10 @@ sub create_certbot_config{
 
 	my $config_file = $config->{certbot_config_dir}.$site_name;
 	print STDERR "    certbot config file: '$config_file'\n" if $debug;
-	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
-		if ($config->{verbosity} > 0){
-			print STDERR "CertBot config '$config_file' already exists; skipping\n"
-		}
-	}
 
 	my $cert_path = $config->{certs_dir}.'/'.$site_name;
 	$cert_path =~ s#//#/#g;
-	if(-f $cert_path and !$config->{certbot_overwrite_certs})
+	if(-f $cert_path and !$config->{certbot_overwrite_certs}){
 		print "Skipping certbot; certificate exists at '$cert_path'; use --overwrite-certs to override this\n";
 		return;
 	}
@@ -206,7 +203,12 @@ EOF
 		print $letsencrypt."\n";
 		return 2;
 	}
-	if($config->{certbot_nowrite}){
+
+	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
+		if ($config->{verbosity} > 0){
+			print STDERR "      CertBot config '$config_file' already exists; skipping\n"
+		}
+	}elsif($config->{certbot_nowrite}){
 		print STDERR "    Not writing config ('nowrite' set)\n" if $debug;
 	}else{
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
@@ -528,10 +530,10 @@ Options:
     issuing command, or don't run either. 
 
 
-  --clobber-nginx, --clobber-certbot, --clobber-both
+  --noclobber-nginx, --noclobber-certbot, --noclobber-both
 
-    Overwrite existing nginx configs, certbot configs, or both. Default is to
-    print a warning and skip the site.
+    Disable overwriting of existing nginx configs, certbot configs, or both. Will 
+    print a warning instead.
 
   --overwrite-certs
 
