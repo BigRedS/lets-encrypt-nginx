@@ -235,12 +235,13 @@ sub create_nginx_config{
 	}
 
 
-	if($config->{nginx_include_file}){
-		my $nginx_include = $config->{nginx_include_file};
-		$nginx_include =~ s/%SITE_NAME%/$site_name/;
+	if($site->{nginx_include_file}){
+		my $nginx_include = $site->{nginx_include_file};
+		$nginx_include .= $site_name if $nginx_include =~ m#/$#;
+
 		if( -f $nginx_include){
 			my @include_lines;
-			print STDERR  "  Including nginx include file '$nginx_include'\n" if $debug;
+			print STDERR  "    Including nginx include file '$nginx_include'\n" if $debug;
 			open(my $fh_include, "<", $nginx_include) or print "Failed to to open nginx-include file '$nginx_include' : $!" ;
 			@include_lines = <$fh_include>;
 			close($fh_include);
@@ -343,6 +344,7 @@ sub get_sites{
 				$config->{defaults}->{nginx_clear} = $sites{_default}->{nginx_clear} if $sites{_default}->{nginx_clear} =~ m/.+/;
 				$config->{defaults}->{do_certs_if_script} = $sites{_default}->{do_certs_if_script} if $sites{_default}->{do_certs_if_script} =~ m/.+/;
 				$config->{defaults}->{cleartext_wildcard} = $sites{_default}->{cleartext_wildcard} if $sites{_default}->{cleartext_wildcard} =~ m/.+/;
+				$config->{defaults}->{nginx_include_file} = $sites{_default}->{nginx_include_file} if $sites{_default}->{nginx_include_file} =~ m/.+/;
 				delete($sites{_default});
 			}
 
@@ -357,11 +359,13 @@ sub get_sites{
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
 			$sites{$sitename}->{do_certs_if_script} = $config->{defaults}->{do_certs_if_script};
 			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
+			$sites{$sitename}->{nginx_include_file} = $config->{defaults}->{nginx_include_file};
 		}
 		if($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
 			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
+			$sites{$sitename}->{nginx_include_file} = $value if $key eq 'nginx_include_file';
 			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear|cleartext_wildcard)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';
@@ -418,7 +422,7 @@ sub parse_config {
 	my $file = shift;
 	my $config;
 	my @keys = qw/nginx_ssl_socket nginx_cleartext_socket nginx_log_path_prefix nginx_config_dir
-	              nginx_clobber nginx_enable_site nginx_include_file nginx_skip
+	              nginx_clobber nginx_enable_site nginx_skip
 	              certbot_config_dir certbot_key_size certbot_server_url certbot_email certbot_webroot_path 
 		      certbot_binary certbot_clobber certbot_skip
 	              certs_dir sites_list
