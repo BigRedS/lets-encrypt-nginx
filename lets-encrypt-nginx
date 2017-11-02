@@ -176,7 +176,7 @@ sub create_certbot_config{
 	
 
 	my $config_file = $config->{certbot_config_dir}.$site_name;
-	print STDERR "    certbot config file: '$config_file'\n" if $debug;
+	print STDERR "    config file: '$config_file'\n" if $debug;
 
 	my $cert_path = $config->{certs_dir}.'/'.$site_name;
 	$cert_path =~ s#//#/#g;
@@ -206,7 +206,7 @@ EOF
 
 	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
 		if ($config->{verbosity} > 0){
-			print STDERR "      CertBot config '$config_file' already exists; skipping\n"
+			print STDERR "    Not writing config file - file already exists and clobber off\n"
 		}
 	}elsif($config->{certbot_nowrite}){
 		print STDERR "    Not writing config ('nowrite' set)\n" if $debug;
@@ -218,9 +218,9 @@ EOF
 		print "Wrote '$config_file'\n";
 	}
 
-	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
+	print STDERR "    get cert command: $generate_cert_cmd\n" if $debug;
 	if($config->{certbot_norun}){
-		print STDERR "    Not running certbot command; 'norun' set:\n      $generate_cert_cmd\n" if $debug;
+		print STDERR "    Not getting certs - '--no-run' set.\n" if $debug;
 	}else{
 			system($generate_cert_cmd);
 		if($? != 0){
@@ -238,10 +238,10 @@ sub create_nginx_config{
 	$server_names.=join(" ", ' ',  @{$site->{cleartext_domains_list}}) if $site->{cleartext_wildcard} > 0;
 	
 	my $config_file = $config->{nginx_config_dir}.$site->{sitename};
-	print STDERR "    Nginx config file: $config_file\n" if $debug;
+	print STDERR "    config file: $config_file\n" if $debug;
 	if(-f $config_file and !$config->{nginx_clobber} and !$config->{nginx_dump}){
 		if($config->{verbosity} > 0){
-			print STDERR "Nginx config '$config_file' already exists; skipping\n";
+			print STDERR "    Not writing config file - file already exists and clobber off\n";
 		}
 		return 1;
 	}
@@ -253,13 +253,14 @@ sub create_nginx_config{
 
 		if( -f $nginx_include){
 			my @include_lines;
-			print STDERR  "    Including nginx include file '$nginx_include'\n" if $debug;
+			print STDERR  "    including file: '$nginx_include'\n" if $debug;
 			open(my $fh_include, "<", $nginx_include) or print "Failed to to open nginx-include file '$nginx_include' : $!" ;
 			@include_lines = <$fh_include>;
 			close($fh_include);
 			$config->{nginx_include_lines} = \@include_lines;
 		}else{
-			print "Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n" if $config->{verbosity} >= 2;
+			print "    " if $debug;
+			print "include file '$nginx_include' doesn't exist. Ignoring\n" if $config->{verbosity} >= 2;
 		}
 	}
 
@@ -313,7 +314,7 @@ EOF
 		return 2;
 	}
 	if($config->{nginx_nowrite}){
-		print STDERR "    Not writing config; 'nowrite' set\n" if $debug;
+		print STDERR "    Not writing config; '--no-write' set\n" if $debug;
 	}else{
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
 		print $fh $nginx_config;
@@ -324,7 +325,7 @@ EOF
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
 	if($config->{nginx_norun}){
-		print STDERR "    Not running enable_site command; 'norun' set:\n      $enable_site_cmd\n" if $debug;
+		print STDERR "    Not running enable_site command - '--no-run' set.\n" if $debug;
 	}else{
 		system($enable_site_cmd);
 		if($? != 0){
