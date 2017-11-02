@@ -451,6 +451,7 @@ sub parse_config {
 			unless(grep{ /^$key$/ } @keys){
 				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring\n");
 			}
+			$value =~ s/("|')//g;
 			$config->{$key} = $value if $value =~ m/\S+/;
 		}
 	}
