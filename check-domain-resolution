@@ -1,0 +1,31 @@
+#! /usr/bin/perl
+
+use strict;
+use Net::DNS;
+
+my ($ip_address,$domain) = @ARGV;
+
+print STDERR "check-domain-resolution invoked ($ip_address, $domain)\n" if $ENV{'DEBUG'};
+
+print STDERR "Usage:\n  check-domain-resolution <ip_address> <domain>\n" and exit unless $domain;
+
+my $res = Net::DNS::Resolver->new;
+my $response = $res->search($domain, "A");
+my ($correct_rr, $incorrect_rr) = (0,0);
+if($response){
+	foreach my $rr ($response->answer){
+		if($rr->address eq $ip_address){
+			print "check-domain-resolution: correct rr: '".$rr->address."'\n" if $ENV{'DEBUG'};
+			$correct_rr++;
+		}else{
+			print "check-domain-resolution: incorrect rr: '".$rr->address."'\n" if $ENV{'DEBUG'};
+			$incorrect_rr++;
+		}
+	}
+}else{
+	print STDERR "check-domain-resolution DNS lookup failed: ".$res->errorstring."\n";
+}
+
+exit 0 if($incorrect_rr == 0 and $correct_rr > 0);
+print STDERR "Exiting 1\n" if $ENV{'DEBUG'};
+exit 1;
