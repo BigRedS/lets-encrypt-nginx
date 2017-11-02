@@ -343,6 +343,7 @@ sub get_sites{
 
 	my %sitss;
 	open(my $fh_domains, "<", $config->{sites_list}) or print "Failed to open domains config file '$config->{sites_list}' : $!\n" and exit 255;
+	print STDERR "Parsing sites file $config->{sites_list}\n" if $debug;
 	my $sitename;
 	while (my $line = readline($fh_domains)){
 		chomp($line);
@@ -421,14 +422,17 @@ sub get_sites{
 				}
 			}
 			if($exit_status_sum == 0){
+				print STDERR "  do_certs_if_script: Enabling SSL for $sitename\n" if $debug;
 				$sites{$sitename}->{nginx_ssl} = 1;
 				$sites{$sitename}->{certbot_skip} = 0;
 			}else{
+				print STDERR "  do_certs_if_script: Disabling SSL for $sitename\n" if $debug;
 				$sites{$sitename}->{nginx_ssl} = 0;
 				$sites{$sitename}->{certbot_skip} = 1;
 			}
 		}
 	}
+	print STDERR "Processed ".keys(%sites)." sites\n\n" if $debug;
 	return %sites;
 }
 
