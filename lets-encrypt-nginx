@@ -9,7 +9,8 @@ my $debug = $ENV{'DEBUG'};
 my $help = undef;
 my $norun = undef;
 my $nowrite = undef;
-my $clobber = undef;
+my $clobber = 1;
+my $noclobber = undef;
 my $dump_sites = undef;
 my $dump_config = undef;
 my $single_site = undef;
@@ -65,6 +66,10 @@ GetOptions(
 	'clobber-certbot' => \$config->{certbot_clobber},
 	'clobber-both' => \$clobber,
 
+	'noclobber-nginx' => \$config->{nginx_noclobber},
+	'noclobber-certbot' => \$config->{certbot_noclobber},
+	'noclobber-both' => \$noclobber,
+
 	'skip-nginx' => \$config->{nginx_skip},
 	'skip-certbot' => \$config->{certbot_skip},
 
@@ -80,9 +85,14 @@ GetOptions(
 	'help|h' => \$help,
 ) or die ('Failed to parse arguments');
 
+
+
 $config->{nginx_norun} = $config->{certbot_norun} = 1 if $norun;
 $config->{nginx_nowrite} = $config->{certbot_nowrite} = 1 if $nowrite;
 $config->{nginx_clobber} = $config->{certbot_clobber} = 1 if $clobber;
+
+$config->{nginx_clobber} = undef if $config->{nginx_noclobber};
+$config->{certbot_clobber} = undef if $config->{nginx_noclobber};
 
 $config->{certbot_config_dir}.='/';
 $config->{certbot_config_dir} =~ s#//#/#g;
