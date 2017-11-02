@@ -32,6 +32,13 @@ _default
   # subdomains will work fine in cleartext, and go to the right place with the
   # wrong certs in SSL.
   cleartext_wildcard off
+  # nginx_ssl can be made conditional; you can have a script executed for each 
+  # domain-name, and if *every* one of them exits zero, nginx_ssl will be enabled
+  # but if *any* exit >0 then it will be left disabled. In reality, this string
+  # is appended with a space and a domain name, and then executed as a command, so
+  # you can hardcode initial arguments here. Lets-encrypt-nginx ships with a script
+  # for testing DNS resolution, which illustrates this:
+  do_certs_if_script = check-domain-resolution 123.45.67.89 
 
 
 # This just uses the config under _default to configure these three domains as
