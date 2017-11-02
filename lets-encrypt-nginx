@@ -208,7 +208,7 @@ EOF
 
 	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
 	if($config->{certbot_norun}){
-		print STDERR "    not running; 'norun' set\n" if $debug;
+		print STDERR "    Not running certbot command; 'norun' set:\n      $generate_cert_cmd\n" if $debug;
 	}else{
 			system($generate_cert_cmd);
 		if($? != 0){
@@ -312,7 +312,7 @@ EOF
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
 	if($config->{nginx_norun}){
-		print STDERR "    Not running enable_site command; 'norun' set\n" if $debug;
+		print STDERR "    Not running enable_site command; 'norun' set:\n      $enable_site_cmd\n" if $debug;
 	}else{
 		system($enable_site_cmd);
 		if($? != 0){
