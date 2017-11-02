@@ -30,7 +30,11 @@ nginx_nocleartext
 # nginx-enable-site with the config filename as its only argument. 
 # You could write to sites-enabled and use --no-run-nginx to simplify this.
 nginx_config_dir = /etc/nginx/sites-available/
-nginx_enable_site = nginx-ensite
+
+# ./simple-nginx-ensite is included in thsi repo, and is quite probably 
+# dangerously simple. You may want to try something like this instead:
+#  https://github.com/perusio/nginx_ensite
+nginx_enable_site = ./simple-nginx-ensite
 
 # Overwrite any existing nginx config. Comment-out to disable, 
 # there is no 'disable' value here. Can be set on the command-line with 

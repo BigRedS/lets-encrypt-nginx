@@ -19,13 +19,16 @@ my $config_file = './lengx.conf';
 
 my $config = {};
 
+$config->{verbosity} = 1;
+
 $config->{certs_dir} = '/etc/ssl/certs/';
 $config->{sites_list} = './sites.conf';
 
 $config->{defaults}->{auto_www} = 1;
-$config->{defaults}->{backend} = '127.0.0.1:80';
+$config->{defaults}->{backend} = '127.0.0.1:8080';
 $config->{defaults}->{nginx_ssl} = 1;
 $config->{defaults}->{nginx_clear} = 1;
+$config->{defaults}->{cleartext_wildcard} = 0;
 
 
 $config->{nginx_ssl_socket} = '443';
@@ -81,6 +84,7 @@ GetOptions(
 
 	'dump-config' => \$config->{dump_config},
 	'dump-sites' => \$dump_sites,
+	'verbosity' => \$config->{verbosity},
 
 	'help|h' => \$help,
 ) or die ('Failed to parse arguments');
@@ -100,7 +104,7 @@ $config->{certbot_config_dir} =~ s#//#/#g;
 $config->{nginx_config_dir}.='/';
 $config->{nginx_config_dir} =~ s#//#/#g;
 
-
+$config->{verbosity} = 10 if $debug;
 
 if($help){
 	usage();
@@ -115,11 +119,6 @@ if(!$config->{sites_list}){
 	print STDERR 'Error: no domains list specified. Try with --help\n';
 	exit 1;
 }
-
-
-# # #
-# #
-#
 
 if($debug){
 	print STDERR "Debug on; dumping config\n";
@@ -146,17 +145,20 @@ foreach my $sitename (keys(%sites)){
 
 	my $site = $sites{$sitename};
 	print STDERR "site: $sitename\n" if $debug;
-	print "  server names: ".$site->{domains_list}."\n" if $debug;
-	if($config->{nginx_skip}){
-		print STDERR "  Skipping nginx \n" if $debug;
-	}else{
-		create_nginx_config($site, $config);
-	}
+	print "  server names: ".join(" " , @{$site->{domains_list}})."\n" if $debug;
 
 	if($config->{certbot_skip} || $site->{certbot_skip}){
 		print STDERR "  Skipping certbot\n" if $debug
 	}else{
+		print STDERR "  Doing certbot\n" if $debug;
 		create_certbot_config($site,$config);
+	}
+
+	if($config->{nginx_skip}){
+		print STDERR "  Skipping nginx \n" if $debug;
+	}else{
+		print STDERR "  Doing nginx\n" if $debug;
+		create_nginx_config($site, $config);
 	}
 }
 
@@ -169,14 +171,17 @@ sub create_certbot_config{
 	
 
 	my $config_file = $config->{certbot_config_dir}.$site_name;
-	print STDERR "  certbot config file: '$config_file'" if $debug;
-	warn("CertBot config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump};
-
-
+	print STDERR "    certbot config file: '$config_file'\n" if $debug;
+	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
+		if ($config->{verbosity} > 0){
+			print STDERR "CertBot config '$config_file' already exists; skipping\n"
+		}
+	}
 	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
-
+	my $now = localtime(time())."";
 
 my $letsencrypt = <<"EOF";
+# Written by lets-encrypt-nginx $now
 domains = $names
 rsa-key-size = $config->{certbot_key_size}
 server = $config->{certbot_server_url}
@@ -197,6 +202,8 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 		print $fh $letsencrypt;
 		close($fh);
+		print "    " if $debug; # To more neatly align the following line
+		print "Wrote '$config_file'\n";
 	}
 
 	print STDERR "    certbot command: $generate_cert_cmd\n" if $debug;
@@ -216,10 +223,16 @@ sub create_nginx_config{
 
 	my $site_name = $site->{sitename};
 	my $server_names = join(" ", @{$site->{domains_list}});
+	$server_names.=join(" ", ' ',  @{$site->{cleartext_domains_list}}) if $site->{cleartext_wildcard} > 0;
 	
 	my $config_file = $config->{nginx_config_dir}.$site->{sitename};
-	print STDERR "  Nginx config file: $config_file\n" if $debug;
-	warn("Nginx config '$config_file' already exists; skipping") and return 1 if -f $config_file and !$config->{nginx_clobber} and !$config->{nginx_dump};
+	print STDERR "    Nginx config file: $config_file\n" if $debug;
+	if(-f $config_file and !$config->{nginx_clobber} and !$config->{nginx_dump}){
+		if($config->{verbosity} > 0){
+			print STDERR "Nginx config '$config_file' already exists; skipping\n";
+		}
+		return 1;
+	}
 
 
 	if($config->{nginx_include_file}){
@@ -233,14 +246,15 @@ sub create_nginx_config{
 			close($fh_include);
 			$config->{nginx_include_lines} = \@include_lines;
 		}else{
-			print STDERR "WARN: Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n";
+			print "Passed '$nginx_include' as nginx-include file, but it doesn't exist. Ignoring\n" if $config->{verbosity} >= 2;
 		}
 	}
 
 	my $enable_site_cmd = $config->{nginx_enable_site}.' '.$site_name;
 
-	my $ssl_cert = $config->{certs_dir}.$site_name.'.chained.crt';
-	my $ssl_key = $config->{certs_dir}.$site_name.'.key';
+	my $ssl_cert = $config->{certs_dir}.$site_name.'/fullchain.pem';
+	my $ssl_key = $config->{certs_dir}.$site_name.'/privkey.pem';
+
 
 	print STDERR "    ssl_cert: $ssl_cert\n" if $debug;
 	print STDERR "    ssl_key: $ssl_key\n" if $debug;
@@ -254,7 +268,10 @@ sub create_nginx_config{
 	print STDERR "    access_log: $access_log\n" if $debug;
 	print STDERR "    error_log: $error_log\n" if $debug;
 
-	my $nginx_config = "server {\n";
+	my $now = localtime(time())."";
+
+	my $nginx_config = "# Written by lets-encrypt-nginx $now\n";
+	$nginx_config.= "server {\n";
 	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
 	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
 	$nginx_config.=<<"EOF";
@@ -266,8 +283,10 @@ sub create_nginx_config{
 	error_log $error_log;
 EOF
 
-	$nginx_config.="\tssl_certificate $ssl_cert\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="\tssl_certificate_key $ssl_key\n" if $config->{nginx_ssl} > 0;
+	$nginx_config.="\tssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
+	$nginx_config.="\tssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
+
+
 
 
 	if($config->{nginx_include_lines}->[0]){
@@ -286,6 +305,8 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
 		print $fh $nginx_config;
 		close($fh);
+		print "    " if $debug; # To more neatly align the following line
+		print "Wrote '$config_file'\n";
 	}
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
@@ -295,6 +316,8 @@ EOF
 		system($enable_site_cmd);
 		if($? != 0){
 			print "Failed to enable '$site_name' by running `$enable_site_cmd`. Exited $?\n";
+		}else{
+			print "Enabled site '$site_name'\n";
 		}
 	}
 	return;
@@ -319,6 +342,7 @@ sub get_sites{
 				$config->{defaults}->{nginx_ssl} = $sites{_default}->{nginx_ssl} if $sites{_default}->{nginx_ssl} =~ m/.+/;
 				$config->{defaults}->{nginx_clear} = $sites{_default}->{nginx_clear} if $sites{_default}->{nginx_clear} =~ m/.+/;
 				$config->{defaults}->{do_certs_if_script} = $sites{_default}->{do_certs_if_script} if $sites{_default}->{do_certs_if_script} =~ m/.+/;
+				$config->{defaults}->{cleartext_wildcard} = $sites{_default}->{cleartext_wildcard} if $sites{_default}->{cleartext_wildcard} =~ m/.+/;
 				delete($sites{_default});
 			}
 
@@ -332,12 +356,13 @@ sub get_sites{
 			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl};
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
 			$sites{$sitename}->{do_certs_if_script} = $config->{defaults}->{do_certs_if_script};
+			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
 		}
 		if($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
 			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
-			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear)$/){
+			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear|cleartext_wildcard)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';
 				}elsif($value =~ m/^n|0/i or $value =~ m/^off/i){
@@ -349,6 +374,13 @@ sub get_sites{
 		}
 	}
 	foreach my $sitename (keys(%sites)){
+		if($sites{$sitename}->{cleartext_wildcard} > 0){
+			my @cleartext_names;
+			foreach my $name(@{$sites{$sitename}->{domains_list}}){
+				push(@cleartext_names, '*.'.$name);
+			}
+			$sites{$sitename}->{cleartext_domains_list} = \@cleartext_names;
+		}
 		if($sites{$sitename}->{auto_www} > 0){
 			my @names = @{$sites{$sitename}->{domains_list}};
 			my @new_names;
@@ -419,7 +451,7 @@ sub dump_sites{
 	foreach my $sitename(keys(%{$sites})){
 		$string.="$sitename\n";
 		foreach my $key (sort(keys(%{$sites{$sitename}}))){
-			if($key eq 'domains_list'){
+			if($key =~ m/domains_list$/){
 				$string.="  $key ".join(", ", @{$sites->{$sitename}->{$key}})."\n";
 			}else{
 				$string.="  $key $sites->{$sitename}->{$key}\n";
@@ -511,25 +543,15 @@ known ones, and use --dump-config to produce the file.
 Unsupported config keys cause a warning to be displayed, but don't prevent execution.
 Lines beginning '#' are skipped as comments.
 
-There should be an example at ./lengx.conf.example
+See ./lengx.conf.example for all available config options.
 
 SITES
 
 Each site is defined, at minimum, by a single space-separated line of domain names. 
-The first item in this list is taken as the name of the site. Options may be set on 
-successive lines that begin with spaces; currently supported options are:
+The first item in this list is taken as the name of the site, and  options may be 
+set on successive lines that begin with spaces.
 
-  auto_www    - if set to 'on', automatically add the 'www' subdomain to all names. 
-                Defaults to 'on'; set to '0' to disable. 
-  backend     - literal string used as the argument to nginx's proxy_pass
-  nginx_clear - set to 0 to skip setting up nginx on port 80
-  nginx_ssl   - set to 0 to skip setting up nginx SSL (so you can have a cleartext site 
-                running before requesting certs from Let's Encrypt).
-
-The first site in the file may be named '_default' to set defaults for all successive 
-sites. Lines beginning '#' are skipped as comments.
-
-There should be an example at ./sites.conf.example
+See ./sites.conf.example for an example.
 
 DEBUGGING
 

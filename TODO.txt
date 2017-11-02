@@ -1,0 +1,9 @@
+* Delete quote marks from config file values 
+
+* Still run cert commands even when not-clobbering certbot
+
+* List of domain names for nginx for which certs will not be requested
+
+* Autmatically don't-regenerate certs where details haven't changed
+
+* Try to prevent certbot ever being interactive - figure out the proper switches etc. so it does the right thing all by itself
