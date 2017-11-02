@@ -43,6 +43,7 @@ $config->{certbot_key_size} = 2048;
 $config->{certbot_server_url} = 'https://acme-v01.api.letsencrypt.org/directory';
 $config->{certbot_config_dir} = '/etc/letsencrypt/configs/';
 $config->{certbot_webroot_path} = '/var/www/letsencrypt/';
+$config->{certbot_overwrite_certs} = undef;
 
 if(-f $ARGV[0]){
 	$config_file = shift(@ARGV);
@@ -72,6 +73,8 @@ GetOptions(
 	'noclobber-nginx' => \$config->{nginx_noclobber},
 	'noclobber-certbot' => \$config->{certbot_noclobber},
 	'noclobber-both' => \$noclobber,
+
+	'overwrite-certs' => \$config->{certbot_overwrite_certs},
 
 	'skip-nginx' => \$config->{nginx_skip},
 	'skip-certbot' => \$config->{certbot_skip},
@@ -176,6 +179,13 @@ sub create_certbot_config{
 		if ($config->{verbosity} > 0){
 			print STDERR "CertBot config '$config_file' already exists; skipping\n"
 		}
+	}
+
+	my $cert_path = $config->{certs_dir}.'/'.$site_name;
+	$cert_path =~ s#//#/#g;
+	if(-f $cert_path and !$config->{certbot_overwrite_certs})
+		print "Skipping certbot; certificate exists at '$cert_path'; use --overwrite-certs to override this\n";
+		return;
 	}
 	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
 	my $now = localtime(time())."";
@@ -523,6 +533,10 @@ Options:
     Overwrite existing nginx configs, certbot configs, or both. Default is to
     print a warning and skip the site.
 
+  --overwrite-certs
+
+    (attempt to) get certs issued even if they already exist. Will probably involve
+    using certbot's interactive interface. 
 
   --skip-nginx --skip-certbot
 
