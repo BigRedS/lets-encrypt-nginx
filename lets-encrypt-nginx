@@ -413,11 +413,11 @@ sub get_sites{
 			my $check_cmd = $sites{$sitename}->{do_certs_if_script};
 			my $exit_status_sum = 0;
 			foreach my $domain_name (@{$sites{$sitename}->{domains_list}}){
-				$check_cmd.=" ".$domain_name;
-				system($check_cmd);
+				my $cmd.=$check_cmd." ".$domain_name;
+				system($cmd);
 				$exit_status_sum+=$?;
 				if($? > 250){
-					print STDERR "Unusually high exit status ($?) from do_certs_if_script `$check_cmd`\n";
+					print STDERR "Unusually high exit status ($?) from do_certs_if_script `$cmd`\n";
 				}
 			}
 			if($exit_status_sum == 0){
