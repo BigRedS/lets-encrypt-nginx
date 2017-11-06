@@ -178,10 +178,9 @@ sub create_certbot_config{
 	my $config_file = $config->{certbot_config_dir}.$site_name;
 	print STDERR "    config file: '$config_file'\n" if $debug;
 
-	my $cert_path = $config->{certs_dir}.'/'.$site_name;
-	$cert_path =~ s#//#/#g;
-	if(-f $cert_path and !$config->{certbot_overwrite_certs}){
-		print "Skipping certbot; certificate exists at '$cert_path'; use --overwrite-certs to override this\n";
+	my $key_path = $config->{certs_dir}.$site_name."/privkey.pem";
+	if(-f $key_path and !$config->{certbot_overwrite_certs}){
+		print "    Cert already exists; skipping certbot\n" if $debug;
 		return;
 	}
 	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
