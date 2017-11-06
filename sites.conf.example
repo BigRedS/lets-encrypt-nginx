@@ -38,7 +38,7 @@ _default
   # is appended with a space and a domain name, and then executed as a command, so
   # you can hardcode initial arguments here. Lets-encrypt-nginx ships with a script
   # for testing DNS resolution, which illustrates this:
-  do_certs_if_script check-domain-resolution 123.45.67.89 
+  do_certs_if_script ./check-domain-resolution 123.45.67.89 
   # Include the contents of this file in the nginx config file, verbatim in the 
   # server{} context. Should probably be tab-indented for prettiness-sake. If the 
   # path given ends with a '/', the file in that directory with a name the same as
