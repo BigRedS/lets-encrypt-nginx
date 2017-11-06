@@ -21,18 +21,20 @@ Options:
     Don't write nginx config, certbot config, or either. Assembles the config, 
     but skips the bit where it would be writen.
 
-
   --no-run-nginx, --no-run-certbot, --no-run
   
     Don't run the nginx site-enabling command,  don't run the certbot cert-
     issuing command, or don't run either. 
 
+  --noclobber-nginx, --noclobber-certbot, --noclobber-both
 
-  --clobber-nginx, --clobber-certbot, --clobber-both
+    Disable overwriting of existing nginx configs, certbot configs, or both. Will 
+    print a warning instead.
 
-    Overwrite existing nginx configs, certbot configs, or both. Default is to
-    print a warning and skip the site.
+  --overwrite-certs
 
+    (attempt to) get certs issued even if they already exist. Will probably involve
+    using certbot's interactive interface. 
 
   --skip-nginx --skip-certbot
 
@@ -47,9 +49,8 @@ Options:
 
   --dump-config, --dump-sites
 
-    Dump the configuration, or site definitions, to stdout before doing any 
-    processing. Config is dumped in the format of a valid config file, but sites
-    are not.
+    Dump the configuration, or site definitions, to stdout and exit. Config is 
+    dumped in the format of a valid config file, but sites are not.
     
 CONFIG
 
