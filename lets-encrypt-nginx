@@ -358,6 +358,8 @@ sub get_sites{
 				$config->{defaults}->{do_certs_if_script} = $sites{_default}->{do_certs_if_script} if $sites{_default}->{do_certs_if_script} =~ m/.+/;
 				$config->{defaults}->{cleartext_wildcard} = $sites{_default}->{cleartext_wildcard} if $sites{_default}->{cleartext_wildcard} =~ m/.+/;
 				$config->{defaults}->{nginx_include_file} = $sites{_default}->{nginx_include_file} if $sites{_default}->{nginx_include_file} =~ m/.+/;
+
+				$config->{defaults}->{nginx_ssl} = undef if $config->{defaults}->{do_certs_if_script};
 				delete($sites{_default});
 			}
 
@@ -365,12 +367,12 @@ sub get_sites{
 			$sitename = $domains[0];
 			$sites{$sitename}->{domains_list} = \@domains;
 			$sites{$sitename}->{sitename} = $sitename;
-			
+
+			$sites{$sitename}->{do_certs_if_script} = $config->{defaults}->{do_certs_if_script} unless $sites{$sitename}->{nginx_ssl} =~ m/\d/;
 			$sites{$sitename}->{auto_www} = $config->{defaults}->{auto_www};
 			$sites{$sitename}->{backend} = $config->{defaults}->{backend};
-			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl};
+			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl} unless $sites{$sitename}->{do_certs_if_script};
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
-			$sites{$sitename}->{do_certs_if_script} = $config->{defaults}->{do_certs_if_script};
 			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
 			$sites{$sitename}->{nginx_include_file} = $config->{defaults}->{nginx_include_file};
 		}
@@ -387,6 +389,9 @@ sub get_sites{
 				}else{
 					print STDERR "Failed attempt to set '$key' to '$value'";
 				}
+			}
+			if($key eq 'nginx_ssl'){
+				delete($sites{$sitename}->{do_certs_if_script});
 			}
 		}
 	}
@@ -409,7 +414,7 @@ sub get_sites{
 		}
 	}
 	foreach my $sitename (sort(keys(%sites))){
-		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/){
+		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/ and !$sites{$sitename}->{nginx_ssl}){
 			my $check_cmd = $sites{$sitename}->{do_certs_if_script};
 			my $exit_status_sum = 0;
 			foreach my $domain_name (@{$sites{$sitename}->{domains_list}}){
