@@ -416,8 +416,8 @@ sub get_sites{
 				my $cmd.=$check_cmd." ".$domain_name;
 				system($cmd);
 				$exit_status_sum+=$?;
-				if($? > 250){
-					print STDERR "Unusually high exit status ($?) from do_certs_if_script `$cmd`\n";
+				if($? < 0){
+					print STDERR "Unusually low exit status ($?) from do_certs_if_script `$cmd`\n";
 				}
 			}
 			if($exit_status_sum == 0){
@@ -528,12 +528,10 @@ Options:
     Don't write nginx config, certbot config, or either. Assembles the config, 
     but skips the bit where it would be writen.
 
-
   --no-run-nginx, --no-run-certbot, --no-run
   
     Don't run the nginx site-enabling command,  don't run the certbot cert-
     issuing command, or don't run either. 
-
 
   --noclobber-nginx, --noclobber-certbot, --noclobber-both
 
@@ -558,9 +556,8 @@ Options:
 
   --dump-config, --dump-sites
 
-    Dump the configuration, or site definitions, to stdout before doing any 
-    processing. Config is dumped in the format of a valid config file, but sites
-    are not.
+    Dump the configuration, or site definitions, to stdout and exit. Config is 
+    dumped in the format of a valid config file, but sites are not.
     
 CONFIG
 
