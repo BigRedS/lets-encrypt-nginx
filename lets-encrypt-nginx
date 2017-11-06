@@ -146,7 +146,7 @@ if($single_site){
 	}
 }
 
-foreach my $sitename (keys(%sites)){
+foreach my $sitename (sort(keys(%sites))){
 
 	my $site = $sites{$sitename};
 	print STDERR "site: $sitename\n" if $debug;
@@ -391,7 +391,7 @@ sub get_sites{
 			}
 		}
 	}
-	foreach my $sitename (keys(%sites)){
+	foreach my $sitename (sort(keys(%sites))){
 		if($sites{$sitename}->{cleartext_wildcard} > 0){
 			my @cleartext_names;
 			foreach my $name(@{$sites{$sitename}->{domains_list}}){
@@ -409,7 +409,7 @@ sub get_sites{
 			$sites{$sitename}->{domains_list} = \@new_names;
 		}
 	}
-	foreach my $sitename (keys(%sites)){
+	foreach my $sitename (sort(keys(%sites))){
 		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/){
 			my $check_cmd = $sites{$sitename}->{do_certs_if_script};
 			my $exit_status_sum = 0;
@@ -473,7 +473,7 @@ sub dump_config{
 sub dump_sites{
 	my $sites = shift;
 	my $string;
-	foreach my $sitename(keys(%{$sites})){
+	foreach my $sitename (sort(keys(%{$sites}))){
 		$string.="$sitename\n";
 		foreach my $key (sort(keys(%{$sites{$sitename}}))){
 			if($key =~ m/domains_list$/){
