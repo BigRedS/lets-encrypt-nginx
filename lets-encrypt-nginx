@@ -355,7 +355,7 @@ sub get_sites{
 		next if $line =~ m/^\s*#/ or $line =~ m/^\s*$/;
 		$line =~ s/\s+$//;
 
-		if($line =~ m/^\w+/){
+		if($line =~ m/^(\S)+/){
 			if($sitename eq '_default'){
 				$config->{defaults}->{auto_www} = $sites{_default}->{auto_www} if $sites{_default}->{auto_www} =~ m/.+/;
 				$config->{defaults}->{backend} = $sites{_default}->{backend} if $sites{_default}->{backend} =~ m/.+/;
@@ -382,7 +382,7 @@ sub get_sites{
 			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
 			$sites{$sitename}->{nginx_include_file} = $config->{defaults}->{nginx_include_file};
 		}
-		if($line =~ m/^\s+(\S+)\s+(.+)$/){
+		elsif($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
 			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
