@@ -188,6 +188,12 @@ sub create_certbot_config{
 
 my $letsencrypt = <<"EOF";
 # Written by lets-encrypt-nginx $now
+
+# # # # # # # # # # # # # # # # #
+#   DO NOT HAND-EDIT THIS FILE  #
+#  changes will  be overwritten #
+# # # # # # # # # # # # # # # # #
+
 domains = $names
 rsa-key-size = $config->{certbot_key_size}
 server = $config->{certbot_server_url}
