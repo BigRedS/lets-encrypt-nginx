@@ -12,4 +12,4 @@ if [ -z $domain ]; then
 	exit 255
 fi
 
-exit $(dig $2 +short 2>&1 | grep -e "^[0-9]" | grep -v $ip_address | wc -l)
+exit $(dig $2 +short 2>&1 | grep -E '[0-9]{1,3}\.' | grep -v $ip_address | wc -l)
