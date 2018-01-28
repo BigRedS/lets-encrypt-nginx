@@ -263,7 +263,6 @@ EOF
 		my $retval = $?>>8;
 		if($retval != 0){
 			print "Failed to generate cert for '$site_name' by running `$generate_cert_cmd`. Exited $retval\n";
-			return 1;
 			return undef;
 		}
 	}
