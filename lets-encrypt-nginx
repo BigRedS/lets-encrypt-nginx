@@ -305,9 +305,14 @@ sub create_nginx_config{
 
 	my $enable_site_cmd = $config->{nginx_enable_site}.' '.$site_name;
 
-	my $ssl_cert = $config->{certs_dir}.$site_name.'/fullchain.pem';
-	my $ssl_key = $config->{certs_dir}.$site_name.'/privkey.pem';
-
+	my($ssl_cert,$ssl_key);
+	if($site->{cert_path}){
+		$ssl_cert = $site->{cert_path};
+		$ssl_key = $site->{key_path};
+	}else{
+		$ssl_cert = $config->{certs_dir}.$site_name.'/fullchain.pem';
+		$ssl_key = $config->{certs_dir}.$site_name.'/privkey.pem';
+	}
 
 	print STDERR "    ssl_cert: $ssl_cert\n" if $debug;
 	print STDERR "    ssl_key: $ssl_key\n" if $debug;
@@ -421,6 +426,8 @@ sub get_sites{
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
 			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
 			$sites{$sitename}->{nginx_include_file} = $value if $key eq 'nginx_include_file';
+			$sites{$sitename}->{cert_path} = $value if $key eq 'cert_path';
+			$sites{$sitename}->{key_path} = $value if $key eq 'key_path';
 			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear|cleartext_wildcard)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';
@@ -452,9 +459,14 @@ sub get_sites{
 			}
 			$sites{$sitename}->{domains_list} = \@new_names;
 		}
+		if($sites{$sitename}->{cert_path} =~ m/.+/){
+			print STDERR "  cert_path and key_path set; setting certbot_skip to 1\n";
+			$sites{$sitename}->{certbot_skip} = 1;
+			$sites{$sitename}->{nginx_ssl} = 1;
+		}
 	}
 	foreach my $sitename (sort(keys(%sites))){
-		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/ and !$sites{$sitename}->{nginx_ssl}){
+		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/ and !$sites{$sitename}->{nginx_ssl} and $sites{$sitename}->{certbot_skip} < 1){
 			my $check_cmd = $sites{$sitename}->{do_certs_if_script};
 			my $exit_status_sum = 0;
 			foreach my $domain_name (@{$sites{$sitename}->{domains_list}}){

@@ -73,3 +73,13 @@ example.edu example.org.uk
   backend http://10.0.0.3:80
   nginx_ssl off
   cleartext_wildcard on
+
+# Finally, you may have some sites where non-lets-encrypt certs are used. Setting
+# 'cert_path' and 'key_path' to the paths to these certificates disables the
+# certbot retrieval, and the Nginx config will be written with these certs instead.
+# Very little sanity checking happens here.
+
+certpurchaser.net certpurchaser.com
+  backend http://10.0.0.3:80
+  cert_path /etc/ssl/certs/certpurchaser.net
+  key_path /etc/ssl/private/certpurchaser.com
