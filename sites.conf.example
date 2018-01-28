@@ -15,7 +15,7 @@
 # use every option, and sets them all to the built-in defaults:
 _default
   # Used verbatim as the argument to proxy_pass in nginx
-  backend 127.0.0.1:8080
+  backend http://127.0.0.1:8080
   # If 'on', will create a 'www.' subdomain of every domain (and subdomain) in 
   # the site (and add these names to the certificate)
   auto_www on
@@ -62,7 +62,7 @@ example.net example.org example.com
 # Here auto_www is set to 'off' to avoid www.staging.example.co.uk from being 
 # configured; instead, we've put 'www.example.co.uk' in the domains list
 staging.example.co.uk www.example.co.uk example.co.uk
-  backend 10.0.0.2:80
+  backend http://10.0.0.2:80
   auto_www off
 
 # cleartext_wildcard is enabled here, so this site will have *.example.edu and 
@@ -70,6 +70,6 @@ staging.example.co.uk www.example.co.uk example.co.uk
 # auto_www is left on (from the default) the certificate will have www.example.edu
 # and www.example.org.uk as names in addition to example.edu and example.org.uk
 example.edu example.org.uk
-  backend 10.0.0.3:80
+  backend http://10.0.0.3:80
   nginx_ssl off
   cleartext_wildcard on
