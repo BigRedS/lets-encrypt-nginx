@@ -42,7 +42,7 @@ there may be a './sites' directory, containing a series of sites config files.
 A simple site config is:
 
     example.co.uk www.example.co.uk
-      backend 10.0.0.2:80
+      backend http://10.0.0.2:80
 
 This configures a site named 'example.co.uk' (the first domain in the list is
 used as the site's name internally), and configuration options are on successive
@@ -60,7 +60,7 @@ all requests to their https equivalents. In this instance, adding `nginx_ssl off
 to the site definition:
 
     example.co.uk www.example.co.uk
-      backend 10.0.0.2:80
+      backend http://10.0.0.2:80
       nginx_ssl off
 
 means that the Nginx config for example.co.uk will only listen for HTTPS (on 
