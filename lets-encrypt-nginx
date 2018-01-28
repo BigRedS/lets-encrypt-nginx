@@ -485,7 +485,7 @@ sub get_sites{
 
 sub parse_config {
 	my $file = shift;
-	my $config;
+	my $config = shift;
 	my @keys = qw/nginx_ssl_socket nginx_cleartext_socket nginx_log_path_prefix nginx_config_dir
 	              nginx_clobber nginx_enable_site nginx_skip
 	              certbot_config_dir certbot_key_size certbot_server_url certbot_email certbot_webroot_path 
