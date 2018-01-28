@@ -44,12 +44,16 @@ nginx_enable_site = ./simple-nginx-ensite
 # customisation.
 #nginx_clobber =  on
 
-
 # the string %SITE_NAME% is replaced with the name of the site, and the 
 # resulting path is appended with '_error_log' and '_access_log' to create the 
 # error log and access log paths respectively. Directories should already exist.
 nginx_log_path_prefix = /var/log/nginx/%SITE_NAME%
 
+# Nginx will be restarted if the certificates are all issued succesfully and the
+# nginx config is sane. If this command exits zero, the nginx config is expected
+# to be okay, and nginx is restarted.
+nginx_config_check = nginx -t
+nginx_restart_command = /etc/init.d/nginx restart
 
 
 # Certbot

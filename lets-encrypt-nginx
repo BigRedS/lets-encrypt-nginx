@@ -36,6 +36,8 @@ $config->{nginx_config_dir} = '/etc/nginx/sites-available';
 $config->{nginx_enable_site} = 'nginx_ensite';
 $config->{nginx_log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
 $config->{nginx_cleartext_socket} = '80';
+$config->{nginx_config_check} = 'nginx -t';
+$config->{nginx_restart_command} = '/etc/init.d/nginx restart';
 
 $config->{certbot_email} = 'letsencrypt@my-company.net';
 $config->{certbot_binary} = '/opt/letsencrypt/letsencrypt-auto',
@@ -146,6 +148,8 @@ if($single_site){
 	}
 }
 
+my $certbot_failures = 0;
+
 foreach my $sitename (sort(keys(%sites))){
 
 	my $site = $sites{$sitename};
@@ -156,7 +160,9 @@ foreach my $sitename (sort(keys(%sites))){
 		print STDERR "  Skipping certbot\n" if $debug
 	}else{
 		print STDERR "  Doing certbot\n" if $debug;
-		create_certbot_config($site,$config);
+		unless(create_certbot_config($site,$config)){
+			$certbot_failures++;
+		}
 	}
 
 	if($config->{nginx_skip}){
@@ -166,6 +172,32 @@ foreach my $sitename (sort(keys(%sites))){
 		create_nginx_config($site, $config);
 	}
 }
+
+if($certbot_failures > 0){
+	print "\nFailed to get all certificates. Not restarting Nginx.\n";
+	print "Review the output above for clues, perhaps re-run with env var DEBUG=0 set\n";
+	exit 2;
+}else{
+	print "Checking nginx config with '".$config->{nginx_config_check}."'\n" if $debug;
+	my @output = system("$config->{nginx_config_check} 2>/dev/null >/dev/null");
+	my $retval = $?>>8;
+	print "Config check exited '$retval'\n" if $debug;
+	
+	if($retval == 0){
+		print "Nginx config OK, restarting nginx with '".$config->{nginx_restart_command}."'\n";
+		`$config->{nginx_restart_command}`;
+		my $retval = $?>>8;
+		if($retval == 0){
+			exit 0;
+		}else{
+			print "\nNginx restart failed. Please investigate\n";
+			exit 4;
+		}
+	}else{
+		print STDERR "Nginx config check failed; Not restarting Nginx\n";
+	}
+}
+
 
 
 
@@ -181,7 +213,7 @@ sub create_certbot_config{
 	my $key_path = $config->{certs_dir}.$site_name."/privkey.pem";
 	if(-f $key_path and !$config->{certbot_overwrite_certs}){
 		print "    Cert already exists; skipping certbot\n" if $debug;
-		return;
+		return 1;
 	}
 	my $generate_cert_cmd = "$config->{certbot_binary} certonly --config ".$config_file;
 	my $now = localtime(time())."";
@@ -206,7 +238,7 @@ EOF
 
 	if($config->{certbot_dump}){
 		print $letsencrypt."\n";
-		return 2;
+		return undef;
 	}
 
 	if(-f $config_file and !$config->{certbot_clobber} and !$config->{certbot_dump}){
@@ -227,9 +259,12 @@ EOF
 	if($config->{certbot_norun}){
 		print STDERR "    Not getting certs - '--no-run' set.\n" if $debug;
 	}else{
-			system($generate_cert_cmd);
-		if($? != 0){
-			print "Failed to generate cert for '$site_name' by running `$generate_cert_cmd`. Exited $?\n";
+		system($generate_cert_cmd);
+		my $retval = $?>>8;
+		if($retval != 0){
+			print "Failed to generate cert for '$site_name' by running `$generate_cert_cmd`. Exited $retval\n";
+			return 1;
+			return undef;
 		}
 	}
 	return 1;
