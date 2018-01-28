@@ -153,7 +153,7 @@ my $certbot_failures = 0;
 foreach my $sitename (sort(keys(%sites))){
 
 	my $site = $sites{$sitename};
-	print STDERR "site: $sitename\n" if $debug;
+	print "Processing $sitename\n";
 	print "  server names: ".join(" " , @{$site->{domains_list}})."\n" if $debug;
 
 	if($config->{certbot_skip} || $site->{certbot_skip}){
@@ -162,6 +162,7 @@ foreach my $sitename (sort(keys(%sites))){
 		print STDERR "  Doing certbot\n" if $debug;
 		unless(create_certbot_config($site,$config)){
 			$certbot_failures++;
+			print " Failed. Certbot failures: $certbot_failures\n" if $debug;
 		}
 	}
 
@@ -251,8 +252,7 @@ EOF
 		open(my $fh, ">", $config_file) or warn ("Failed to open certbot config file '$config_file' for writing : $!") and return undef;
 		print $fh $letsencrypt;
 		close($fh);
-		print "    " if $debug; # To more neatly align the following line
-		print "Wrote '$config_file'\n";
+		print "    Wrote '$config_file'\n" if $debug;
 	}
 
 	print STDERR "    get cert command: $generate_cert_cmd\n" if $debug;
@@ -360,7 +360,7 @@ EOF
 		print $fh $nginx_config;
 		close($fh);
 		print "    " if $debug; # To more neatly align the following line
-		print "Wrote '$config_file'\n";
+		print "Wrote '$config_file'\n" if $debug;
 	}
 
 	print STDERR "    enable site command: $enable_site_cmd\n" if $debug;
@@ -371,7 +371,7 @@ EOF
 		if($? != 0){
 			print "Failed to enable '$site_name' by running `$enable_site_cmd`. Exited $?\n";
 		}else{
-			print "Enabled site '$site_name'\n";
+			print "Enabled site '$site_name'\n" if $debug;
 		}
 	}
 	return;
