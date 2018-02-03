@@ -70,3 +70,12 @@ be redirected to https.
 
 The file at `./sites.conf.example` contains complete examples including every 
 supported option.
+
+
+
+Finally, lets-encrypt-nginx will parse each existing Nginx config file, and on 
+finding a line `#LENGX: SKIP` will skip writing that site's Nginx config, 
+effectively treating it as read-only, and carry on as if it were succefully 
+written-to. This is intended primarily to avoid clobbering debugging/testing 
+config.
+
