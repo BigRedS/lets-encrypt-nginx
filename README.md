@@ -1,9 +1,9 @@
-# lets-encrypt-nginx 
+# lengx: Let's Encrypt Nginx
 
 An easy way of managing Lets Encrypt certs in an Nginx https-terminator.
 
-Lets-encrypt-nginx reads its own config files and uses that to write nginx and 
-Let's Encrypt certbot config, then invokes certbot to retrieve those certs.
+Lengx reads its own config files and uses that to write nginx and Let's 
+Encrypt certbot config, then invokes certbot to retrieve those certs.
 
 It's intentionally pretty simple; this is intended to make large and simple 
 installations into trivial ones, not to simplify complex webserver configs.
@@ -29,10 +29,10 @@ There are two config files:
   backend details and suchlike. 
 
 
-When lets-encrypt-nginx is invoked, it assumes lengx.conf is present at 
-`./lengx.conf`, and the sites.conf must be passed using the `--sites` option:
+When lengx is invoked, it assumes lengx.conf is present at `./lengx.conf`, and 
+the sites.conf must be passed using the `--sites` option:
 
-    ./lets-encrypt-nginx --sites ./sites.conf
+    ./lengx --sites ./sites.conf
 
 On systems with configurations for several environments, or several customers,
 there may be a './sites' directory, containing a series of sites config files.
@@ -73,9 +73,8 @@ supported option.
 
 
 
-Finally, lets-encrypt-nginx will parse each existing Nginx config file, and on 
-finding a line `#LENGX: SKIP` will skip writing that site's Nginx config, 
-effectively treating it as read-only, and carry on as if it were succefully 
-written-to. This is intended primarily to avoid clobbering debugging/testing 
-config.
+Finally, lengx will parse each existing Nginx config file, and on finding a 
+line `#LENGX: SKIP` will skip writing that site's Nginx config, effectively 
+treating it as read-only, and carry on as if it were succefully written-to.
+This is intended primarily to avoid clobbering debugging/testing config.
 

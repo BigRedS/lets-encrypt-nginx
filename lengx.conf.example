@@ -1,6 +1,7 @@
-# lets-encrypt-nginx example config file. This contains every possible key, and
-# just sets them all to defaults.
-# 
+# lengx (Let's Encrypt Nginx) example config file. 
+# https://github.com/BigRedS/lets-encrypt-nginx
+
+# This contains every possible key, and just sets them all to defaults.
 
 # If this is left unset, it must be given on the command-line using --sites
 sites_list = './sites.conf.example'

@@ -1,5 +1,7 @@
-# This is a sites config file for lets-encrypt-nginx.
-#
+# This is a sites config file for lengx (Let's Encrypt Nginx)
+# https://github.com/BigRedS/lets-encrypt-nginx
+
+
 # It is a list of space-separated lists of domain names, one per line. Each 
 # space-separated list may have a number of options, set on whitespace-indented
 # lines below it. The site's 'name' is the first domain name in the list.

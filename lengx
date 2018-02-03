@@ -220,7 +220,8 @@ sub create_certbot_config{
 	my $now = localtime(time())."";
 
 my $letsencrypt = <<"EOF";
-# Written by lets-encrypt-nginx $now
+# Written by lengx (Let's Encrypt Nginx) $now
+# https://github.com/BigRedS/lets-encrypt-nginx
 
 # # # # # # # # # # # # # # # # #
 #   DO NOT HAND-EDIT THIS FILE  #
@@ -335,7 +336,13 @@ sub create_nginx_config{
 
 	my $now = localtime(time())."";
 
-	my $nginx_config = "# Written by lets-encrypt-nginx $now\n";
+	my $nginx_config = "# Written by lengx (Let's Encrypt Nginx) $now\n";
+	$nginx_config.="# https://github.com/BigRedS/lets-encrypt-nginx\n\n";
+	$nginx_config.="# # # # # # # # # # # # # # # # #\n";
+	$nginx_config.="#   DO NOT HAND-EDIT THIS FILE  #\n";
+	$nginx_config.="#  changes will  be overwritten #\n";
+	$nginx_config.="# # # # # # # # # # # # # # # # #\n\n";
+
 	$nginx_config.= "server {\n";
 	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
 	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
@@ -585,11 +592,11 @@ sub parse_nginx_config{
 sub usage{
 print <<"EOF";
 
-lets-encrypt-nginx; script for configuring nginx and lets encrypt.
+lengx (Let's Encrypt Nginx); script for configuring nginx and lets encrypt.
 
 USAGE:
 
-  lets-encrypt-nginx [ <config-file> ] [--sites <sites-list>] [options]
+  lengx [ <config-file> ] [--sites <sites-list>] [options]
 
   config-file defaults to $config_file; must be first argument when set
   sites-list defaults to $config->{sites_list}
@@ -661,7 +668,7 @@ DEBUGGING
 
 Set the environment variable 'DEBUG' to anything to have helpful(!) messages printed to stderr:
 
-    DEBUG=1 lets-encrypt-nginx --no-run --no-write 
+    DEBUG=1 lengx --no-run --no-write 
 
 is a likely invocation here.
 
