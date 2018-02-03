@@ -1,12 +1,12 @@
 
-lets-encrypt-nginx; script for configuring nginx and lets encrypt.
+lengx (Let's Encrypt Nginx); script for configuring nginx and lets encrypt.
 
 USAGE:
 
-  lets-encrypt-nginx [ <config-file> ] [--sites <sites-list>] [options]
+  lengx [ <config-file> ] [--sites <sites-list>] [options]
 
   config-file defaults to ./lengx.conf; must be first argument when set
-  sites-list defaults to ./sites.conf
+  sites-list defaults to ./sites.conf.example
 
 See CONFIG and SITES below for a description of those two files. 
 
@@ -75,7 +75,7 @@ DEBUGGING
 
 Set the environment variable 'DEBUG' to anything to have helpful(!) messages printed to stderr:
 
-    DEBUG=1 lets-encrypt-nginx --no-run --no-write 
+    DEBUG=1 lengx --no-run --no-write 
 
 is a likely invocation here.
 
