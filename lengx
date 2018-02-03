@@ -287,8 +287,8 @@ sub create_nginx_config{
 	}
 	if( -f $config_file ){
 		my $lengx_comments = parse_nginx_config($config_file);
-		if ($lengx_comments->{skip}){
-			print STDERR "    Not modifying config file; '#LENGX: SKIP' set in $config_file\n";
+		if (defined($lengx_comments->{skip})){
+			print STDERR "    Not modifying '$config_file'; '#LENGX: SKIP' set (to '". $lengx_comments->{skip}. "')\n";
 			return 1;
 		}
 	}
@@ -581,8 +581,12 @@ sub parse_nginx_config{
 	open(my $fh, "<", $path) or warn "Failed to open '$path' for reading :$!" and return;
 	while (my $line = readline($fh)){
 		if($line =~ m/^#\s*LENGX\s*:\s*(.+)$/){
-			my $config = lc($1);
-			$config{$config}++;
+			my $option = lc($1);
+			if($option =~ m/(\w+):(.+)$/){
+				$config{$1} = $2;
+			}else{
+				$config{$option} = '';
+			}
 		}
 	}
 	return \%config;
