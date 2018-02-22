@@ -344,20 +344,23 @@ sub create_nginx_config{
 	$nginx_config.="# # # # # # # # # # # # # # # # #\n\n";
 
 	$nginx_config.= "server {\n";
-	$nginx_config.="\tlisten $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="\tlisten $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
-	$nginx_config.=<<"EOF";
-	server_name $server_names;
-	location / {
-		proxy_pass $site->{backend};
+	$nginx_config.="	listen $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
+	$nginx_config.="	listen $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
+	$nginx_config.="	server_name $server_names;\n";
+	$nginx_config.="	location / {\n";
+	$nginx_config.="		proxy_pass $site->{backend}\n";
+	if($site->{additional_location_line}->[0]){
+		$nginx_config.="\t\t# ".scalar(@{$site->{additional_location_line}})." additional location lines\n";
+		foreach my $line (@{$site->{additional_location_line}}){
+			$nginx_config.="\t\t$line\n";
+		}
 	}
-	access_log $access_log;
-	error_log $error_log;
-EOF
 
-	$nginx_config.="\tssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="\tssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
-
+	$nginx_config.="	}\n";
+	$nginx_config.="	access_log $access_log\n";
+	$nginx_config.="	error_log $error_log\n";
+	$nginx_config.="	ssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
+	$nginx_config.="	ssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
 
 
 
@@ -365,6 +368,12 @@ EOF
 		$nginx_config.=join("", @{$config->{nginx_include_lines}});
 	}
 
+	if($site->{additional_server_line}->[0]){
+		$nginx_config.="\t# ".scalar(@{$site->{additional_server_line}})." additional_server_lines\n";
+		foreach my $line (@{$site->{additional_server_line}}){
+			$nginx_config.="\t$line\n";
+		}
+	}
 	$nginx_config.="}\n";
 
 	if($config->{nginx_dump}){
@@ -442,6 +451,8 @@ sub get_sites{
 			$sites{$sitename}->{nginx_include_file} = $value if $key eq 'nginx_include_file';
 			$sites{$sitename}->{cert_path} = $value if $key eq 'cert_path';
 			$sites{$sitename}->{key_path} = $value if $key eq 'key_path';
+			push(@{$sites{$sitename}->{additional_server_line}}, $value) if $key eq 'nginx_add_server_line';
+			push(@{$sites{$sitename}->{additional_location_line}}, $value) if $key eq 'nginx_add_location_line';
 			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear|cleartext_wildcard)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';

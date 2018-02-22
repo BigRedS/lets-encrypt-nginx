@@ -60,6 +60,13 @@ _default
 # www.example.com. The site will be called 'example.net' and so that will be the
 # filename of the nginx and of the certbot config.
 example.net example.org example.com
+  # You can add custom config per-site with these two directives. The lines are
+  # intented to match the rest of the config.
+  # Add a block in the server{} context, immediately after any nginx_include_file
+  nginx_add_server_line error_log /var/log/example.org_error_log
+  # And this will add one in the location{} context (which is normally the right
+  # place if you're looking to override global configs):
+  nginx_add_location_line client_max_body_size 300M;
 
 # Here auto_www is set to 'off' to avoid www.staging.example.co.uk from being 
 # configured; instead, we've put 'www.example.co.uk' in the domains list
