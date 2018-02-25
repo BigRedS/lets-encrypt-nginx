@@ -350,6 +350,7 @@ sub create_nginx_config{
 	$nginx_config.="	location / {\n";
 	$nginx_config.="		proxy_pass $site->{backend};\n";
 	if($site->{additional_location_line}->[0]){
+		print STDERR "    ".scalar(@{$site->{additional_location_line}})." additional_location_lines\n" if $debug;
 		$nginx_config.="\t\t# ".scalar(@{$site->{additional_location_line}})." additional location lines\n";
 		foreach my $line (@{$site->{additional_location_line}}){
 			$nginx_config.="\t\t$line\n";
@@ -369,6 +370,7 @@ sub create_nginx_config{
 	}
 
 	if($site->{additional_server_line}->[0]){
+		print STDERR "    ".scalar(@{$site->{additional_server_line}})." additional_server_lines\n" if $debug;
 		$nginx_config.="\t# ".scalar(@{$site->{additional_server_line}})." additional_server_lines\n";
 		foreach my $line (@{$site->{additional_server_line}}){
 			$nginx_config.="\t$line\n";
@@ -428,6 +430,10 @@ sub get_sites{
 				$config->{defaults}->{nginx_include_file} = $sites{_default}->{nginx_include_file} if $sites{_default}->{nginx_include_file} =~ m/.+/;
 
 				$config->{defaults}->{nginx_ssl} = undef if $config->{defaults}->{do_certs_if_script};
+
+				push(@{$config->{defaults}->{additional_server_line}}, @{$sites{_default}->{additional_server_line}}) if $sites{_default}->{additional_server_line}->[0];
+				push(@{$config->{defaults}->{additional_location_line}}, @{$sites{_default}->{additional_location_line}}) if $sites{_default}->{additional_location_line}->[0];
+
 				delete($sites{_default});
 			}
 
@@ -443,6 +449,10 @@ sub get_sites{
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
 			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
 			$sites{$sitename}->{nginx_include_file} = $config->{defaults}->{nginx_include_file};
+
+			$sites{$sitename}->{additional_server_line} = $config->{defaults}->{additional_server_line};
+			$sites{$sitename}->{additional_location_line} = $config->{defaults}->{additional_location_line};
+
 		}
 		elsif($line =~ m/^\s+(\S+)\s+(.+)$/){
 			my ($key,$value) = ($1,$2);
@@ -557,8 +567,9 @@ sub dump_sites{
 	foreach my $sitename (sort(keys(%{$sites}))){
 		$string.="$sitename\n";
 		foreach my $key (sort(keys(%{$sites{$sitename}}))){
-			if($key =~ m/domains_list$/){
-				$string.="  $key ".join(", ", @{$sites->{$sitename}->{$key}})."\n";
+			if(    ($key =~ m/domains_list$/ or $key =~ m/^additional_(location|server)_line$/)
+			   and ($sites->{$sitename}->{$key}) ){
+				$string.="  $key ".join("; ", @{$sites->{$sitename}->{$key}})."\n";
 			}else{
 				$string.="  $key $sites->{$sitename}->{$key}\n";
 			}
