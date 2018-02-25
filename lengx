@@ -348,7 +348,7 @@ sub create_nginx_config{
 	$nginx_config.="	listen $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
 	$nginx_config.="	server_name $server_names;\n";
 	$nginx_config.="	location / {\n";
-	$nginx_config.="		proxy_pass $site->{backend}\n";
+	$nginx_config.="		proxy_pass $site->{backend};\n";
 	if($site->{additional_location_line}->[0]){
 		$nginx_config.="\t\t# ".scalar(@{$site->{additional_location_line}})." additional location lines\n";
 		foreach my $line (@{$site->{additional_location_line}}){
@@ -357,8 +357,8 @@ sub create_nginx_config{
 	}
 
 	$nginx_config.="	}\n";
-	$nginx_config.="	access_log $access_log\n";
-	$nginx_config.="	error_log $error_log\n";
+	$nginx_config.="	access_log $access_log;\n";
+	$nginx_config.="	error_log $error_log;\n";
 	$nginx_config.="	ssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
 	$nginx_config.="	ssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
 
