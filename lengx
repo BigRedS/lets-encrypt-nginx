@@ -502,7 +502,7 @@ sub get_sites{
 			$sites{$sitename}->{domains_list} = \@new_names;
 		}
 		if($sites{$sitename}->{cert_path} =~ m/.+/){
-			print STDERR "  cert_path and key_path set; setting certbot_skip to 1\n";
+			print STDERR "  cert_path and key_path set; setting certbot_skip to 1\n" if $debug;
 			$sites{$sitename}->{certbot_skip} = 1;
 			$sites{$sitename}->{nginx_ssl} = 1;
 		}
