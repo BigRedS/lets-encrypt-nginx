@@ -347,9 +347,12 @@ sub create_nginx_config{
 	if($site->{nginx_add_location_line}->[0]){
 		push(@cf, "\t\t# ".scalar(@{$site->{nginx_add_location_line}})." additional location lines");
 
-		print STDERR "    ".scalar(@{$site->{nginx_add_location_line}})." nginx_add_location_lines\n" if $debug;
+		print STDERR '    '.scalar(@{$site->{nginx_add_location_line}})." nginx_add_location_lines:\n" if $debug;
+
+
 		foreach my $add_line (@{$site->{nginx_add_location_line}}){
 			$add_line.=';' if $add_line !~ m/;\s*$/ and $add_line !~ m/^\s*#/;
+			print STDERR '      '.$add_line."\n" if $debug;
 			push(@cf, "\t\t".$add_line);
 		}
 	}
@@ -363,8 +366,9 @@ sub create_nginx_config{
 	if($site->{nginx_add_server_line}->[0]){
 		push(@cf, "\t# ".scalar(@{$site->{nginx_add_server_line}})." additional server lines");
 
-		print STDERR "    ".scalar(@{$site->{nginx_add_server_line}})." nginx_add_server_lines\n" if $debug;
+		print STDERR '    '.scalar(@{$site->{nginx_add_server_line}})." nginx_add_server_lines:\n" if $debug;
 		foreach my $add_line (@{$site->{nginx_add_server_line}}){
+			print STDERR '      '.$add_line."\n" if $debug;
 			$add_line.=';' if $add_line !~ m/;\s*$/ and $add_line !~ m/^\s*#/;
 			push(@cf, "\t".$add_line);
 		}
@@ -471,6 +475,7 @@ sub get_sites{
 	}
 	foreach my $sitename (sort(keys(%sites))){
 		if($sites{$sitename}->{cleartext_wildcard} > 0){
+			print STDERR "  [$sitename] cleartext_wildcard set to on; adding '*.' subdomain to nginx config\n" if $debug;
 			my @cleartext_names;
 			foreach my $name(@{$sites{$sitename}->{domains_list}}){
 				push(@cleartext_names, '*.'.$name);
@@ -478,6 +483,7 @@ sub get_sites{
 			$sites{$sitename}->{cleartext_domains_list} = \@cleartext_names;
 		}
 		if($sites{$sitename}->{auto_www} > 0){
+			print STDERR "  [$sitename] auto_www set to on; adding 'www.' subdomains\n" if $debug;
 			my @names = @{$sites{$sitename}->{domains_list}};
 			my @new_names;
 			foreach my $name (@names){
@@ -487,15 +493,17 @@ sub get_sites{
 			$sites{$sitename}->{domains_list} = \@new_names;
 		}
 		if($sites{$sitename}->{cert_path} =~ m/.+/){
-			print STDERR "  cert_path and key_path set; setting certbot_skip to 1\n" if $debug;
+			print STDERR "  [$sitename] cert_path and key_path set; setting certbot_skip to 1\n" if $debug;
 			$sites{$sitename}->{certbot_skip} = 1;
 			$sites{$sitename}->{nginx_ssl} = 1;
 		}
 		if($sites{$sitename}->{backend} !~ m#^.+//.+#){
 			$sites{$sitename}->{backend} = 'http://'.$sites{$sitename}->{backend};
-			print STDERR "  backend has no scheme; guessing at HTTP: $sites{$sitename}->{backend}\n" if $debug;
+			print STDERR "  [$sitename] backend has no scheme; guessing at HTTP: $sites{$sitename}->{backend}\n" if $debug;
 		}
 	}
+
+	print STDERR "Checking do_certs_if_scripts\n" if $debug;
 	foreach my $sitename (sort(keys(%sites))){
 		if($sites{$sitename}->{do_certs_if_script} =~ m/.+/ and !$sites{$sitename}->{nginx_ssl} and $sites{$sitename}->{certbot_skip} < 1){
 			my $check_cmd = $sites{$sitename}->{do_certs_if_script};
@@ -505,21 +513,21 @@ sub get_sites{
 				system($cmd);
 				$exit_status_sum+=$?;
 				if($? < 0){
-					print STDERR "Unusually low exit status ($?) from do_certs_if_script `$cmd`\n";
+					print STDERR "[$sitename] Unusually low exit status ($?) from do_certs_if_script `$cmd`\n";
 				}
 			}
 			if($exit_status_sum == 0){
-				print STDERR "  do_certs_if_script: Enabling SSL for $sitename\n" if $debug;
+				print STDERR "  Enabling SSL for $sitename\n" if $debug;
 				$sites{$sitename}->{nginx_ssl} = 1;
 				$sites{$sitename}->{certbot_skip} = 0;
 			}else{
-				print STDERR "  do_certs_if_script: Disabling SSL for $sitename\n" if $debug;
+				print STDERR "  Disabling SSL for $sitename\n" if $debug;
 				$sites{$sitename}->{nginx_ssl} = 0;
 				$sites{$sitename}->{certbot_skip} = 1;
 			}
 		}
 	}
-	print STDERR "Processed ".keys(%sites)." sites\n\n" if $debug;
+	print STDERR "Found ".keys(%sites)." sites\n\n" if $debug;
 	return %sites;
 }
 
