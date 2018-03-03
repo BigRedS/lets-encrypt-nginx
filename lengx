@@ -374,7 +374,7 @@ sub create_nginx_config{
 		}
 	}
 
-	push(@cf, '}');
+	push(@cf, "}\n");
 
 
 	if($config->{nginx_dump}){
