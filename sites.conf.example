@@ -1,88 +1,20 @@
-# This is a sites config file for lengx (Let's Encrypt Nginx)
-# https://github.com/BigRedS/lets-encrypt-nginx
+# This is the actual sites.conf file from one of my machines, and is 
+# the normal complexity of one of these.
 
-
-# It is a list of space-separated lists of domain names, one per line. Each 
-# space-separated list may have a number of options, set on whitespace-indented
-# lines below it. The site's 'name' is the first domain name in the list.
-#
-# A 'site' is a series of hostnames that will share an nginx config (and hence a 
-# backend) and a certbot certificate.
-# 
-# Lines beginning with a '#' (or whitespace and then a '#') are comments
-
-
-# If the first-defined site in the file has '_default' in place of a domains 
-# list, it sets the default values for successive sites. This one happens to 
-# use every option, and sets them all to the built-in defaults:
 _default
-  # Used verbatim as the argument to proxy_pass in nginx
-  backend http://127.0.0.1:8080
-  # If 'on', will create a 'www.' subdomain of every domain (and subdomain) in 
-  # the site (and add these names to the certificate)
-  auto_www on
-  # If this is set to 'off', nginx is not configured for an SSL site (this does
-  # not disable the certbot stuff). Only really useful if the domain needs to 
-  # work in cleartext for some time before you request the certs.
   nginx_ssl on
-  # If this is set to 'off', nginx is not configured for a cleartext socket for
-  # this site; you'll need to set this to 'off' if something else is doing the 
-  # cleartext termination locally, and 'on' if nginx is.
   nginx_clear on
-  # You cannot have a wildcard name in the letsencrypt certs, but if this is set
-  # to 'on' then the wildcards are added to the Nginx config anyway. These wild
-  # subdomains will work fine in cleartext, and go to the right place with the
-  # wrong certs in SSL.
-  cleartext_wildcard off
-  # nginx_ssl can be made conditional; you can have a script executed for each 
-  # domain-name, and if *every* one of them exits zero, nginx_ssl will be enabled
-  # but if *any* exit >0 then it will be left disabled.
-  # While the site-specific config will always overrule the _default config, when
-  # both do_certs_if_script and nginx_ssl are set in the same place, what will
-  # happen is undefined.
-  # In reality, this string is appended with a space and a domain name, and then 
-  # executed as a command, so you can hardcode initial arguments here. 
-  # Lets-encrypt-nginx ships with a script for testing DNS resolution, which 
-  # illustrates this:
-  do_certs_if_script ./check-domain-resolution 123.45.67.89 
-
-
-# This just uses the config under _default to configure these three domains as
-# a single 'site'. Since auto_www is 'on' here (because of the default site), 
-# the cert and nginx config will include www.example.net, www.example.org and
-# www.example.com. The site will be called 'example.net' and so that will be the
-# filename of the nginx and of the certbot config.
-example.net example.org example.com
-  # You can add custom config per-site with these two directives. The lines are
-  # intented to match the rest of the config, and lengx tries to figure out if 
-  # it needs to add a semi-colon on the end:
-  # Add a block in the server{} context:
-  nginx_add_server_line error_log /var/log/example.org_error_log
-  # And this will add one in the location{} context (which is normally the right
-  # place if you're looking to override global configs):
-  nginx_add_location_line client_max_body_size 30M
-
-# Here auto_www is set to 'off' to avoid www.staging.example.co.uk from being 
-# configured; instead, we've put 'www.example.co.uk' in the domains list
-staging.example.co.uk www.example.co.uk example.co.uk
-  backend http://10.0.0.2:80
   auto_www off
 
-# cleartext_wildcard is enabled here, so this site will have *.example.edu and 
-# *.example.org.uk in the nginx server_name, but not in the certificate. Because
-# auto_www is left on (from the default) the certificate will have www.example.edu
-# and www.example.org.uk as names in addition to example.edu and example.org.uk
-example.edu example.org.uk
-  backend http://10.0.0.3:80
-  nginx_ssl off
-  cleartext_wildcard on
+cookie.avi.co
+  backend http://cookie:8080
 
-# Finally, you may have some sites where non-lets-encrypt certs are used. Setting
-# 'cert_path' and 'key_path' to the paths to these certificates disables the
-# certbot retrieval, and the Nginx config will be written with these certs instead.
-# Very little sanity checking happens here.
+git.avi.co
+  nginx_add_location_line include /etc/nginx/includes/tunneled-traffic-only;
+  backend http://10.20.30.108
 
-certpurchaser.net certpurchaser.com
-  backend http://10.0.0.3:80
-  cert_path /etc/ssl/certs/certpurchaser.net
-  key_path /etc/ssl/private/certpurchaser.com
+grafana.avi.co
+  nginx_add_location_line include /etc/nginx/includes/tunneled-traffic-only;
+  backend http://10.20.30.102:3000
+
+
