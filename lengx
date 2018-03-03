@@ -25,7 +25,7 @@ $config->{certs_dir} = '/etc/ssl/certs/';
 $config->{sites_list} = './sites.conf';
 
 $config->{defaults}->{auto_www} = 1;
-$config->{defaults}->{backend} = '127.0.0.1:8080';
+$config->{defaults}->{backend} = 'http://127.0.0.1:8080';
 $config->{defaults}->{nginx_ssl} = 1;
 $config->{defaults}->{nginx_clear} = 1;
 $config->{defaults}->{cleartext_wildcard} = 0;
@@ -490,6 +490,10 @@ sub get_sites{
 			print STDERR "  cert_path and key_path set; setting certbot_skip to 1\n" if $debug;
 			$sites{$sitename}->{certbot_skip} = 1;
 			$sites{$sitename}->{nginx_ssl} = 1;
+		}
+		if($sites{$sitename}->{backend} !~ m#^.+//.+#){
+			$sites{$sitename}->{backend} = 'http://'.$sites{$sitename}->{backend};
+			print STDERR "  backend has no scheme; guessing at HTTP: $sites{$sitename}->{backend}\n" if $debug;
 		}
 	}
 	foreach my $sitename (sort(keys(%sites))){
