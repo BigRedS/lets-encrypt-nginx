@@ -305,23 +305,6 @@ sub create_nginx_config{
 	}
 
 
-	if($site->{nginx_include_file}){
-		my $nginx_include = $site->{nginx_include_file};
-		$nginx_include .= $site_name if $nginx_include =~ m#/$#;
-
-		if( -f $nginx_include){
-			my @include_lines;
-			print STDERR  "    including file: '$nginx_include'\n" if $debug;
-			open(my $fh_include, "<", $nginx_include) or print "Failed to to open nginx-include file '$nginx_include' : $!" ;
-			@include_lines = <$fh_include>;
-			close($fh_include);
-			$config->{nginx_include_lines} = \@include_lines;
-		}else{
-			print "    " if $debug;
-			print "include file '$nginx_include' doesn't exist. Ignoring\n" if $config->{verbosity} >= 2;
-		}
-	}
-
 	my $enable_site_cmd = $config->{nginx_enable_site}.' '.$site_name;
 
 	my($ssl_cert,$ssl_key);
@@ -373,12 +356,6 @@ sub create_nginx_config{
 	$nginx_config.="	error_log $error_log;\n";
 	$nginx_config.="	ssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
 	$nginx_config.="	ssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
-
-
-
-	if($config->{nginx_include_lines}->[0]){
-		$nginx_config.=join("", @{$config->{nginx_include_lines}});
-	}
 
 	if($site->{additional_server_line}->[0]){
 		print STDERR "    ".scalar(@{$site->{additional_server_line}})." additional_server_lines\n" if $debug;
@@ -438,7 +415,6 @@ sub get_sites{
 				$config->{defaults}->{nginx_clear} = $sites{_default}->{nginx_clear} if $sites{_default}->{nginx_clear} =~ m/.+/;
 				$config->{defaults}->{do_certs_if_script} = $sites{_default}->{do_certs_if_script} if $sites{_default}->{do_certs_if_script} =~ m/.+/;
 				$config->{defaults}->{cleartext_wildcard} = $sites{_default}->{cleartext_wildcard} if $sites{_default}->{cleartext_wildcard} =~ m/.+/;
-				$config->{defaults}->{nginx_include_file} = $sites{_default}->{nginx_include_file} if $sites{_default}->{nginx_include_file} =~ m/.+/;
 
 				$config->{defaults}->{nginx_ssl} = undef if $config->{defaults}->{do_certs_if_script};
 
@@ -459,7 +435,6 @@ sub get_sites{
 			$sites{$sitename}->{nginx_ssl} = $config->{defaults}->{nginx_ssl} unless $sites{$sitename}->{do_certs_if_script};
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
 			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
-			$sites{$sitename}->{nginx_include_file} = $config->{defaults}->{nginx_include_file};
 
 			$sites{$sitename}->{additional_server_line} = $config->{defaults}->{additional_server_line};
 			$sites{$sitename}->{additional_location_line} = $config->{defaults}->{additional_location_line};
@@ -469,7 +444,6 @@ sub get_sites{
 			my ($key,$value) = ($1,$2);
 			$sites{$sitename}->{backend} = $value if $key eq 'backend';
 			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
-			$sites{$sitename}->{nginx_include_file} = $value if $key eq 'nginx_include_file';
 			$sites{$sitename}->{cert_path} = $value if $key eq 'cert_path';
 			$sites{$sitename}->{key_path} = $value if $key eq 'key_path';
 			push(@{$sites{$sitename}->{additional_server_line}}, $value) if $key eq 'nginx_add_server_line';
