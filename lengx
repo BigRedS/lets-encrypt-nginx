@@ -33,7 +33,7 @@ $config->{defaults}->{cleartext_wildcard} = 0;
 
 $config->{nginx_ssl_socket} = '443';
 $config->{nginx_config_dir} = '/etc/nginx/sites-available';
-$config->{nginx_enable_site} = 'nginx_ensite';
+$config->{nginx_enable_site} = './simple-nginx-ensite';
 $config->{nginx_log_path_prefix} = '/var/log/nginx/%SITE_NAME%';
 $config->{nginx_cleartext_socket} = '80';
 $config->{nginx_config_check} = 'nginx -t';
