@@ -329,52 +329,59 @@ sub create_nginx_config{
 	print STDERR "    error_log: $error_log\n" if $debug;
 
 	my $now = localtime(time())."";
+	my @cf;
+	push(@cf, "# Written by lengx (Let's Encrypt Nginx) $now");
+	push(@cf, '# https://github.com/BigRedS/lets-encrypt-nginx\n');
+	push(@cf, '# # # # # # # # # # # # # # # # #');
+	push(@cf, '#   DO NOT HAND-EDIT THIS FILE  #');
+	push(@cf, '#  changes will  be overwritten #');
+	push(@cf, '# # # # # # # # # # # # # # # # #\n');
 
-	my $nginx_config = "# Written by lengx (Let's Encrypt Nginx) $now\n";
-	$nginx_config.="# https://github.com/BigRedS/lets-encrypt-nginx\n\n";
-	$nginx_config.="# # # # # # # # # # # # # # # # #\n";
-	$nginx_config.="#   DO NOT HAND-EDIT THIS FILE  #\n";
-	$nginx_config.="#  changes will  be overwritten #\n";
-	$nginx_config.="# # # # # # # # # # # # # # # # #\n\n";
+	push(@cf, 'server {');
+	push(@cf, "	listen $config->{nginx_ssl_socket} ssl;") if $site->{nginx_ssl} > 0;
+	push(@cf, "	listen $config->{nginx_cleartext_socket};") if ($site->{nginx_clear} > 0);
+	push(@cf, "	server_name $server_names;");
+	push(@cf, '	location / {');
+	push(@cf, "		proxy_pass $site->{backend};");
 
-	$nginx_config.= "server {\n";
-	$nginx_config.="	listen $config->{nginx_ssl_socket} ssl;\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="	listen $config->{nginx_cleartext_socket};\n" if ($site->{nginx_clear} > 0);
-	$nginx_config.="	server_name $server_names;\n";
-	$nginx_config.="	location / {\n";
-	$nginx_config.="		proxy_pass $site->{backend};\n";
-	if($site->{additional_location_line}->[0]){
-		print STDERR "    ".scalar(@{$site->{additional_location_line}})." additional_location_lines\n" if $debug;
-		$nginx_config.="\t\t# ".scalar(@{$site->{additional_location_line}})." additional location lines\n";
-		foreach my $line (@{$site->{additional_location_line}}){
-			$nginx_config.="\t\t$line\n";
+	if($site->{nginx_add_location_line}->[0]){
+		push(@cf, "\t\t# ".scalar(@{$site->{nginx_add_location_line}})." additional location lines");
+
+		print STDERR "    ".scalar(@{$site->{nginx_add_location_line}})." nginx_add_location_lines\n" if $debug;
+		foreach my $add_line (@{$site->{nginx_add_location_line}}){
+			$add_line.=';' if $add_line !~ m/;\s*$/ and $add_line !~ m/^\s*#/;
+			push(@cf, "\t\t".$add_line);
 		}
 	}
 
-	$nginx_config.="	}\n";
-	$nginx_config.="	access_log $access_log;\n";
-	$nginx_config.="	error_log $error_log;\n";
-	$nginx_config.="	ssl_certificate $ssl_cert;\n" if $site->{nginx_ssl} > 0;
-	$nginx_config.="	ssl_certificate_key $ssl_key;\n" if $site->{nginx_ssl} > 0;
+	push(@cf, '	}');
+	push(@cf, "	access_log $access_log;");
+	push(@cf, "	error_log $error_log;");
+	push(@cf, "	ssl_certificate $ssl_cert;") if $site->{nginx_ssl} > 0;
+	push(@cf, "	ssl_certificate_key $ssl_key;") if $site->{nginx_ssl} > 0;
 
-	if($site->{additional_server_line}->[0]){
-		print STDERR "    ".scalar(@{$site->{additional_server_line}})." additional_server_lines\n" if $debug;
-		$nginx_config.="\t# ".scalar(@{$site->{additional_server_line}})." additional_server_lines\n";
-		foreach my $line (@{$site->{additional_server_line}}){
-			$nginx_config.="\t$line\n";
+	if($site->{nginx_add_server_line}->[0]){
+		push(@cf, "\t# ".scalar(@{$site->{nginx_add_server_line}})." additional server lines");
+
+		print STDERR "    ".scalar(@{$site->{nginx_add_server_line}})." nginx_add_server_lines\n" if $debug;
+		foreach my $add_line (@{$site->{nginx_add_server_line}}){
+			$add_line.=';' if $add_line !~ m/;\s*$/ and $add_line !~ m/^\s*#/;
+			push(@cf, "\t".$add_line);
 		}
 	}
-	$nginx_config.="}\n";
+
+	push(@cf, '}');
+
 
 	if($config->{nginx_dump}){
-		print $nginx_config;
+		print join("\n", @cf);
 		return 2;
 	}
 	if($config->{nginx_nowrite}){
 		print STDERR "    Not writing config; '--no-write' set\n" if $debug;
 	}else{
 		open(my $fh, ">", $config_file) or warn ("Failed to open nginx config file '$config_file' for writing : $!") and return undef;
-		print $fh $nginx_config;
+		print $fh join("\n", @cf);
 		close($fh);
 		print "    " if $debug; # To more neatly align the following line
 		print "Wrote '$config_file'\n" if $debug;
@@ -418,8 +425,8 @@ sub get_sites{
 
 				$config->{defaults}->{nginx_ssl} = undef if $config->{defaults}->{do_certs_if_script};
 
-				push(@{$config->{defaults}->{additional_server_line}}, @{$sites{_default}->{additional_server_line}}) if $sites{_default}->{additional_server_line}->[0];
-				push(@{$config->{defaults}->{additional_location_line}}, @{$sites{_default}->{additional_location_line}}) if $sites{_default}->{additional_location_line}->[0];
+				push(@{$config->{defaults}->{nginx_add_server_line}}, @{$sites{_default}->{nginx_add_server_line}}) if $sites{_default}->{nginx_add_server_line}->[0];
+				push(@{$config->{defaults}->{nginx_add_location_line}}, @{$sites{_default}->{nginx_add_location_line}}) if $sites{_default}->{nginx_add_location_line}->[0];
 
 				delete($sites{_default});
 			}
@@ -436,8 +443,8 @@ sub get_sites{
 			$sites{$sitename}->{nginx_clear} = $config->{defaults}->{nginx_clear};
 			$sites{$sitename}->{cleartext_wildcard} = $config->{defaults}->{cleartext_wildcard};
 
-			$sites{$sitename}->{additional_server_line} = $config->{defaults}->{additional_server_line};
-			$sites{$sitename}->{additional_location_line} = $config->{defaults}->{additional_location_line};
+			$sites{$sitename}->{nginx_add_server_line} = $config->{defaults}->{nginx_add_server_line};
+			$sites{$sitename}->{nginx_add_location_line} = $config->{defaults}->{nginx_add_location_line};
 
 		}
 		elsif($line =~ m/^\s+(\S+)\s+(.+)$/){
@@ -446,8 +453,8 @@ sub get_sites{
 			$sites{$sitename}->{do_certs_if_script} = $value if $key eq 'do_certs_if_script';
 			$sites{$sitename}->{cert_path} = $value if $key eq 'cert_path';
 			$sites{$sitename}->{key_path} = $value if $key eq 'key_path';
-			push(@{$sites{$sitename}->{additional_server_line}}, $value) if $key eq 'nginx_add_server_line';
-			push(@{$sites{$sitename}->{additional_location_line}}, $value) if $key eq 'nginx_add_location_line';
+			push(@{$sites{$sitename}->{nginx_add_server_line}}, $value) if $key eq 'nginx_add_server_line';
+			push(@{$sites{$sitename}->{nginx_add_location_line}}, $value) if $key eq 'nginx_add_location_line';
 			if($key =~ m/^(auto_www|nginx_ssl|nginx_clear|cleartext_wildcard)$/){
 				if($value =~ m/^(y|1)/i or $value =~ m/^on/i){
 					$sites{$sitename}->{$key} = '1';
@@ -552,7 +559,7 @@ sub dump_sites{
 	foreach my $sitename (sort(keys(%{$sites}))){
 		$string.="$sitename\n";
 		foreach my $key (sort(keys(%{$sites{$sitename}}))){
-			if(    ($key =~ m/domains_list$/ or $key =~ m/^additional_(location|server)_line$/)
+			if(    ($key =~ m/domains_list$/ or $key =~ m/^nginx_add_(location|server)_line$/)
 			   and ($sites->{$sitename}->{$key}) ){
 				$string.="  $key ".join("; ", @{$sites->{$sitename}->{$key}})."\n";
 			}else{
