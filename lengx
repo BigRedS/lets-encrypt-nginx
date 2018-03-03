@@ -153,6 +153,10 @@ if(!$config->{certbot_skip}){
 		print "Certbot config dir '$config->{certbot_config_dir}' does not exist; creating it\n";
 		mkdir($config->{certbot_config_dir}) or die ("mkdir failed: $!");
 	}
+	unless(-d $config->{certbot_webroot_path}){
+		print "Certbot webroot dir '$config->{certbot_webroot_path}' does not exist; creating it\n";
+		mkdir($config->{certbot_webroot_path}) or die ("mkdir failed: $!");
+	}
 }
 
 my $certbot_failures = 0;
