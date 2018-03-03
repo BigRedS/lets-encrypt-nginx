@@ -22,11 +22,13 @@ running it.
 There are two config files: 
 
 * `lengx.conf` contains details of the nginx and certbot installation, and 
-  system-wide settings. An example file at `./lengx.conf.example` contains 
-  every possible configuration option.
+  system-wide settings. An example file at `./lengx.conf.example` is a real-
+  life one-line example, and `./lengx.conf.complete` documents every available
+  option.
 
 * `sites.conf` contains definitions of sites to configure - their domain names,
-  backend details and suchlike. 
+  backend details and suchlike. `./sites.conf.example` is a real-life example 
+  of this file, and `./sites.conf.complete` documents every available option.
 
 
 When lengx is invoked, it assumes lengx.conf is present at `./lengx.conf`, and 
@@ -34,9 +36,9 @@ the sites.conf must be passed using the `--sites` option:
 
     ./lengx --sites ./sites.conf
 
-On systems with configurations for several environments, or several customers,
-there may be a './sites' directory, containing a series of sites config files.
-
+On systems with configurations for several environments, or several customers, 
+conventionally there will be a `./sites` directory containing a series of sites
+config files, but lengx itself doesn't seek these out.
 
 
 A simple site config is:
@@ -66,10 +68,6 @@ to the site definition:
 means that the Nginx config for example.co.uk will only listen for HTTPS (on 
 port 443); requests for http will instead get through to the default server and
 be redirected to https.
-
-
-The file at `./sites.conf.example` contains complete examples including every 
-supported option.
 
 
 
