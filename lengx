@@ -148,6 +148,13 @@ if($single_site){
 	}
 }
 
+if(!$config->{certbot_skip}){
+	unless(-d $config->{certbot_config_dir}){
+		print "Certbot config dir '$config->{certbot_config_dir}' does not exist; creating it\n";
+		mkdir($config->{certbot_config_dir}) or die ("mkdir failed: $!");
+	}
+}
+
 my $certbot_failures = 0;
 
 foreach my $sitename (sort(keys(%sites))){
