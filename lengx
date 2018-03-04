@@ -196,22 +196,28 @@ if($certbot_failures > 0){
 	exit 2;
 }
 
-print "Checking nginx config with '".$config->{nginx_config_check}."'\n" if $debug;
-my @output = system("$config->{nginx_config_check} 2>/dev/null >/dev/null");
-my $retval = $?>>8;
-print "Config check exited '$retval'\n" if $debug;
 
-if($retval != 0){
-	print STDERR "Nginx config check failed; Not restarting Nginx\n";
-	exit;
-}
+if($config->{nginx_skip}){
+	print "Skip-nginx set; not config-checking or restarting Nginx\n";
+}else{
 
-print "Nginx config OK, restarting nginx with '".$config->{nginx_restart_command}."'\n";
-`$config->{nginx_restart_command}`;
-my $retval = $?>>8;
-if($retval != 0){
-	print "\nNginx restart failed. Please investigate\n";
-	exit 4;
+	print "Checking nginx config with '".$config->{nginx_config_check}."'\n" if $debug;
+	my @output = system("$config->{nginx_config_check} 2>/dev/null >/dev/null");
+	my $retval = $?>>8;
+	print "Config check exited '$retval'\n" if $debug;
+
+	if($retval != 0){
+		print STDERR "Nginx config check failed; Not restarting Nginx\n";
+		exit;
+	}
+
+	print "Nginx config OK, restarting nginx with '".$config->{nginx_restart_command}."'\n";
+	`$config->{nginx_restart_command}`;
+	my $retval = $?>>8;
+	if($retval != 0){
+		print "\nNginx restart failed. Please investigate\n";
+		exit 4;
+	}
 }
 
 if($config->{postrun_command}){
