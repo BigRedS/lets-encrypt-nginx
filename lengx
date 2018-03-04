@@ -577,8 +577,8 @@ sub parse_config {
 		if($line =~ m/^(\S+)\s*=\s*(.+)\s*$/){
 			my($key,$value) = ($1,$2);
 			unless(grep{ /^$key$/ } @keys){
-				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring\n");
-				next;
+				print STDERR ("Unrecognised config option '$key' (set to '$value') on line $. of $file; exiting\n");
+				exit 254;
 			}
 			$value =~ s/("|')//g;
 			$config->{$key} = $value if $value =~ m/\S+/;
