@@ -1,0 +1,19 @@
+#! /bin/bash
+
+other_host=$1
+dir="/etc/certbot/"
+
+hostname=$(hostname);
+
+if [ -z $other_host ]; then
+	if [[ $hostname =~ a$ ]]; then
+		other_host=$(echo $hostname | sed -e '/a$/b/');
+	else
+		echo "Couldn't guess other-host from hostname '$hostname'"
+		echo "try passing it as a second argument";
+		exit 12
+	fi
+fi
+
+echo rsync -uavz $dir $other_host:$dir
+exit $?

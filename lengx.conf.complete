@@ -9,6 +9,14 @@ sites_list = './sites.conf.example'
 # The directory certs are written to
 certs_dir = '/etc/letsencrypt/live/'
 
+# If everything goes well - certs are retrieved, nginx config is wrtitten and
+# nginx restarts happily, this command is run afterwards. ./sync-certs-to-b 
+# is included in the repo, and on hosts whose name ends 'a' it tries to rsync
+# /etc/letsencrypt/ to the -b equivalent (assuming passwordless ssh auth is
+# working).
+# Empty by default, but when we set it, it's to this:
+postrun_command = ./sync-certs-to-b
+
 # Nginx
 #######
 

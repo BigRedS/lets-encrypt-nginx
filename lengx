@@ -29,7 +29,7 @@ $config->{defaults}->{backend} = 'http://127.0.0.1:8080';
 $config->{defaults}->{nginx_ssl} = 1;
 $config->{defaults}->{nginx_clear} = 1;
 $config->{defaults}->{cleartext_wildcard} = 0;
-
+$config->{postrun_command} = undef;
 
 $config->{nginx_ssl_socket} = '443';
 $config->{nginx_config_dir} = '/etc/nginx/sites-available';
@@ -159,6 +159,11 @@ if(!$config->{certbot_skip}){
 	}
 }
 
+
+# # #
+# #
+#
+
 my $certbot_failures = 0;
 
 foreach my $sitename (sort(keys(%sites))){
@@ -189,29 +194,43 @@ if($certbot_failures > 0){
 	print "\nFailed to get all certificates. Not restarting Nginx.\n";
 	print "Review the output above for clues, perhaps re-run with env var DEBUG=0 set\n";
 	exit 2;
-}else{
-	print "Checking nginx config with '".$config->{nginx_config_check}."'\n" if $debug;
-	my @output = system("$config->{nginx_config_check} 2>/dev/null >/dev/null");
-	my $retval = $?>>8;
-	print "Config check exited '$retval'\n" if $debug;
-	
-	if($retval == 0){
-		print "Nginx config OK, restarting nginx with '".$config->{nginx_restart_command}."'\n";
-		`$config->{nginx_restart_command}`;
-		my $retval = $?>>8;
-		if($retval == 0){
-			exit 0;
-		}else{
-			print "\nNginx restart failed. Please investigate\n";
-			exit 4;
-		}
-	}else{
-		print STDERR "Nginx config check failed; Not restarting Nginx\n";
-	}
 }
 
+print "Checking nginx config with '".$config->{nginx_config_check}."'\n" if $debug;
+my @output = system("$config->{nginx_config_check} 2>/dev/null >/dev/null");
+my $retval = $?>>8;
+print "Config check exited '$retval'\n" if $debug;
 
+if($retval != 0){
+	print STDERR "Nginx config check failed; Not restarting Nginx\n";
+	exit;
+}
 
+print "Nginx config OK, restarting nginx with '".$config->{nginx_restart_command}."'\n";
+`$config->{nginx_restart_command}`;
+my $retval = $?>>8;
+if($retval != 0){
+	print "\nNginx restart failed. Please investigate\n";
+	exit 4;
+}
+
+if($config->{postrun_command}){
+	print "Running postrun command: '$config->{postrun_command}'\n";
+	my @output = `$config->{postrun_command} 2>&1`;
+	my $retval = $?>>8;
+	if($retval != 0){
+		print "Postrun script failed:\n\n> ";
+		print join('> ', @output)."\n";
+		exit $?;
+	}
+	print "Exited OK\n";
+}
+
+exit 0;
+
+# # #
+# #
+#
 
 sub create_certbot_config{
 	my ($site,$config) = @_;
@@ -541,11 +560,12 @@ sub parse_config {
 	              certbot_config_dir certbot_key_size certbot_server_url certbot_email certbot_webroot_path 
 		      certbot_binary certbot_clobber certbot_skip
 	              certs_dir sites_list
+		      postrun_command
 	/;
 	open (my $fh_config, "<", $file) or die ("Failed to open config file '$file' for reading : $!");
 	while (my $line = readline($fh_config)){
 		next if $line =~ m/^\s*#/;
-		if($line =~ m/^(\S+)\s*=\s*(\S+)\s*$/){
+		if($line =~ m/^(\S+)\s*=\s*(.+)\s*$/){
 			my($key,$value) = ($1,$2);
 			unless(grep{ /^$key$/ } @keys){
 				print STDERR ("Unrecognised config option '$key' (set to '$value'); ignoring\n");
