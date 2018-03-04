@@ -21,7 +21,7 @@ my $config = {};
 
 $config->{verbosity} = 1;
 
-$config->{certs_dir} = '/etc/ssl/certs/';
+$config->{certs_dir} = '/etc/letsencrypt/live/';
 $config->{sites_list} = './sites.conf';
 
 $config->{defaults}->{auto_www} = 1;
