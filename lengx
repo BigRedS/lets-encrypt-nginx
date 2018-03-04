@@ -2,7 +2,6 @@
 
 use strict;
 use Getopt::Long;
-use Data::Dumper;
 
 my $debug = $ENV{'DEBUG'};
 
