@@ -359,7 +359,7 @@ sub create_nginx_config{
 	my $now = localtime(time())."";
 	my @cf;
 	push(@cf, "# Written by lengx (Let's Encrypt Nginx) $now");
-	push(@cf, '# https://github.com/BigRedS/lets-encrypt-nginx\n');
+	push(@cf, "# https://github.com/BigRedS/lets-encrypt-nginx\n");
 	push(@cf, '# # # # # # # # # # # # # # # # #');
 	push(@cf, '#   DO NOT HAND-EDIT THIS FILE  #');
 	push(@cf, '#  changes will  be overwritten #');
