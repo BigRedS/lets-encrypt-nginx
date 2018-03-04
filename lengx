@@ -199,6 +199,9 @@ if($certbot_failures > 0){
 
 if($config->{nginx_skip}){
 	print "Skip-nginx set; not config-checking or restarting Nginx\n";
+}elsif($config->{nginx_dump}){
+	print STDERR "Dump-nginx set; not config-checking or restarting Nginx, or running postrun command\n" if $debug;
+	exit 0;
 }else{
 
 	print "Checking nginx config with '".$config->{nginx_config_check}."'\n" if $debug;
