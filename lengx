@@ -3,6 +3,8 @@
 use strict;
 use Getopt::Long;
 
+my $version = '0.20180319';
+
 my $debug = $ENV{'DEBUG'};
 
 my $help = undef;
@@ -13,6 +15,7 @@ my $noclobber = undef;
 my $dump_sites = undef;
 my $dump_config = undef;
 my $single_site = undef;
+my $show_version = undef;
 
 my $config_file = './lengx.conf';
 
@@ -90,10 +93,11 @@ GetOptions(
 	'dump-sites' => \$dump_sites,
 	'verbosity' => \$config->{verbosity},
 
+	'version|v' => \$show_version,
 	'help|h' => \$help,
 ) or die ('Failed to parse arguments');
 
-
+print "lengx version $version\n" and exit if $show_version;
 
 $config->{nginx_norun} = $config->{certbot_norun} = 1 if $norun;
 $config->{nginx_nowrite} = $config->{certbot_nowrite} = 1 if $nowrite;
