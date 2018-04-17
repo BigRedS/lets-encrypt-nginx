@@ -55,7 +55,7 @@ if(-f $ARGV[0]){
 
 if($config_file eq '' or ! -f $config_file){
 	print STDERR "Config file ($config_file) unset or not-existent\n";
-	$help =1;
+	print STDERR "Try with --help, or look for an example one in /etc/lengx\n";
 }else{
 	print "Parsing config file '$config_file'\n" if $debug;
 	$config = parse_config($config_file, $config);
@@ -370,7 +370,7 @@ sub create_nginx_config{
 
 	push(@cf, 'server {');
 	push(@cf, "	listen $config->{nginx_ssl_socket} ssl;") if $site->{nginx_ssl} > 0;
-	push(@cf, "	listen $config->{nginx_cleartext_socket};") if ($site->{nginx_clear} > 0);
+	push(@cf, "	listen $config->{nginx_cleartext_socket};") if ($site->{nginx_clear} > 0 or $site->{nginx_ssl} < 1);
 	push(@cf, "	server_name $server_names;");
 	push(@cf, '	location / {');
 	push(@cf, "		proxy_pass $site->{backend};");
