@@ -1,0 +1,29 @@
+#! /bin/bash
+
+other_host=$1
+certs="/etc/letsencrypt/"
+nginx="/etc/nginx/"
+lengx="/root/lets-encrypt-nginx/";
+
+hostname=$(hostname);
+
+if [ -z $other_host ]; then
+	if [[ $hostname =~ a$ ]]; then
+		other_host=$(echo $hostname | sed -e 's/a$/b/');
+	else
+		echo "Couldn't guess other-host from my hostname '$hostname'."
+		echo "Try passing it as an argument:";
+		echo "$0 <hostname>";
+		exit 12
+	fi
+fi
+
+rsync -uavz $certs $other_host:$certs
+rsync -uavz $nginx $other_host:$nginx
+rsync -uavz $lengx $other_host:$lengx
+
+ssh $other_host "/etc/init.d/nginx restart"
+
+exit $?
+
+
