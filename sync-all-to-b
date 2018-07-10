@@ -4,6 +4,7 @@ other_host=$1
 certs="/etc/letsencrypt/"
 nginx="/etc/nginx/"
 lengx="/root/lets-encrypt-nginx/";
+ssl="/etc/ssl/"
 
 hostname=$(hostname);
 
@@ -21,6 +22,7 @@ fi
 rsync -uavz $certs $other_host:$certs
 rsync -uavz $nginx $other_host:$nginx
 rsync -uavz $lengx $other_host:$lengx
+rsync -uavz $ssl $other_host:$ssl
 
 ssh $other_host "/etc/init.d/nginx restart"
 
