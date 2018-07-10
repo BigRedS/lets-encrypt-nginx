@@ -48,6 +48,7 @@ $config->{certbot_server_url} = 'https://acme-v01.api.letsencrypt.org/directory'
 $config->{certbot_config_dir} = '/etc/letsencrypt/configs/';
 $config->{certbot_webroot_path} = '/var/www/letsencrypt/';
 $config->{certbot_overwrite_certs} = undef;
+$config->{certbot_ignore_wildcard_domains} = 1;
 
 if(-f $ARGV[0]){
 	$config_file = shift(@ARGV);
@@ -246,9 +247,15 @@ exit 0;
 
 sub create_certbot_config{
 	my ($site,$config) = @_;
-	my $names = join(',', @{$site->{domains_list}});
 	my $site_name = $site->{sitename};
-	
+	my $names;
+
+	if($config->{certbot_ignore_wildcard_domains} and $config->{certbot_ignore_wildcard_domains} > 0){
+		$names = join(',', grep(!/^\*/, @{$site->{domains_list}}))
+	}else{
+		$names = join(',', @{$site->{domains_list}});
+	}
+	print STDERR "    cert names: $names\n" if $debug;
 
 	my $config_file = $config->{certbot_config_dir}.$site_name;
 	print STDERR "    config file: '$config_file'\n" if $debug;
