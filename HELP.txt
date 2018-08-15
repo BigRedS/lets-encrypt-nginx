@@ -5,8 +5,9 @@ USAGE:
 
   lengx [ <config-file> ] [--sites <sites-list>] [options]
 
-  config-file defaults to ./lengx.conf; must be first argument when set
-  sites-list defaults to ./sites.conf.example
+  config-file defaults to /etc/lengx/lengx.conf if that exists, then ./lengx.conf;
+  must be the first argument when passed as an argument
+  sites-list defaults to /etc/lengx/sites.conf if /etc/lengx exists, then ./sites.conf
 
 See CONFIG and SITES below for a description of those two files. 
 

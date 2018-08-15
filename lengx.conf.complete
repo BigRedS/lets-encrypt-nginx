@@ -3,7 +3,8 @@
 
 # This contains every possible key, and just sets them all to defaults.
 
-# If this is left unset, it must be given on the command-line using --sites
+# This defaults to /etc/lengx/sites.conf if /etc/lengx exists, and ./sites.conf
+# otherwise; it can be overridden with the --sites parameter
 sites_list = './sites.conf.example'
 
 # The directory certs are written to
